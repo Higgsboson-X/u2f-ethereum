@@ -33,6 +33,11 @@ Install and open the MetaMask extension in Chrome. Set the network to be `127.0.
 
 ![metamask setup](https://github.com/Higgsboson-X/u2f-solidity/blob/master/images/7.png "MetaMask Setup")
 
+In a separate terminal:
+```
+$ npm run dev
+```
+
 If you want to deploy the Bank contract by yourself, in a separate terminal:
 ```
 $ truffle console --network ganache
