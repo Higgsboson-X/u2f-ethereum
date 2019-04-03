@@ -102,6 +102,10 @@ You can view recent transactions in `Recent Transactions` page, where transactio
 
 ![recent txns](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/11.png "Recent Txns")
 
-In the `Recent Transaction Address` page, transaction records with recent interacted addresses are listed as tables. The first row displays the most recent interacted address, the second row displays the second recent interacted address and so on.
+In the `Recent Transaction Address` page, transaction records with recent interacted addresses are listed as tables. The first row displays the interacted address with the highest transaction amount, the second row displays the interacted address with the second highest transaction amount and so on.
 
 ![recent txn address](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/12.png "Recent Txn Address")
+
+## Notes
+1. The change password function is not yet implemented.
+2. The authentication records can be found in the `Register U2F Key` page.
