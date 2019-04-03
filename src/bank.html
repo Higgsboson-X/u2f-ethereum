@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="icon" type="image/png" href="./favicon.ico"/>
+	<meta charset="utf-8">
+	<title>ETH Bank</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+	<style type="text/css">
+@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css');
+@media(min-width:768px) {
+    body {
+        margin-top: 50px;
+    }
+    /*html, body, #wrapper, #page-wrapper {height: 100%; overflow: hidden;}*/
+}
+
+#wrapper {
+    padding-left: 0;    
+}
+
+#page-wrapper {
+    width: 100%;        
+    padding: 0;
+    background-color: #fff;
+}
+
+@media(min-width:768px) {
+    #wrapper {
+        padding-left: 225px;
+    }
+
+    #page-wrapper {
+        padding: 22px 10px;
+    }
+}
+
+/* Top Navigation */
+
+.top-nav {
+    padding: 0 15px;
+}
+
+.top-nav>li {
+    display: inline-block;
+    float: left;
+}
+
+.top-nav>li>a {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    line-height: 20px;
+    color: #fff;
+}
+
+.top-nav>li>a:hover,
+.top-nav>li>a:focus,
+.top-nav>.open>a,
+.top-nav>.open>a:hover,
+.top-nav>.open>a:focus {
+    color: #fff;
+    background-color: #1a242f;
+}
+
+.top-nav>.open>.dropdown-menu {
+    float: left;
+    position: absolute;
+    margin-top: 0;
+    /*border: 1px solid rgba(0,0,0,.15);*/
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    background-color: #fff;
+    -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+}
+
+.top-nav>.open>.dropdown-menu>li>a {
+    white-space: normal;
+}
+
+/* Side Navigation */
+
+@media(min-width:768px) {
+    .side-nav {
+        position: fixed;
+        top: 60px;
+        left: 225px;
+        width: 225px;
+        margin-left: -225px;
+        border: none;
+        border-radius: 0;
+        border-top: 1px rgba(0,0,0,.5) solid;
+        overflow-y: auto;
+        background-color: #222;
+        /*background-color: #5A6B7D;*/
+        bottom: 0;
+        overflow-x: hidden;
+        padding-bottom: 40px;
+    }
+
+    .side-nav>li>a {
+        width: 225px;
+        border-bottom: 1px rgba(0,0,0,.3) solid;
+    }
+
+    .side-nav li a:hover,
+    .side-nav li a:focus {
+        outline: none;
+        background-color: #1a242f !important;
+    }
+}
+
+.side-nav>li>ul {
+    padding: 0;
+    border-bottom: 1px rgba(0,0,0,.3) solid;
+}
+
+.side-nav>li>ul>li>a {
+    display: block;
+    padding: 10px 15px 10px 38px;
+    text-decoration: none;
+    /*color: #999;*/
+    color: #fff;    
+}
+
+.side-nav>li>ul>li>a:hover {
+    color: #fff;
+}
+
+.navbar .nav > li > a > .label {
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  border-radius: 50%;
+  position: absolute;
+  top: 14px;
+  right: 6px;
+  font-size: 10px;
+  font-weight: normal;
+  min-width: 15px;
+  min-height: 15px;
+  line-height: 1.0em;
+  text-align: center;
+  padding: 2px;
+}
+
+.navbar .nav > li > a:hover > .label {
+  top: 10px;
+}
+
+.navbar-brand {
+    padding: 5px 15px;
+}
+    </style>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+<div id="throbber" style="display:none; min-height:120px;"></div>
+<div id="noty-holder"></div>
+<div id="wrapper">
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle Navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand">
+                <img src="./logo.PNG" alt="LOGO">
+            </a>
+        </div>
+        <!-- Top Menu Items -->
+        <ul class="nav navbar-right top-nav">          
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="fa fa-angle-down"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a href="#" onclick="userInfo()"><i class="fa fa-fw fa-user"></i> Info</a></li>
+                    <li><a href="#" onclick="userPassword()"><i class="fa fa-fw fa-cog"></i> Password</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#" onclick="userLogout()"><i class="fa fa-fw fa-power-off"></i> Logout</a></li>
+                </ul>
+            </li>
+        </ul>
+        <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav side-nav">
+                <li>
+                    <a href="#" data-toggle="collapse" data-target="#functions"><i class="fa fa-fw fa-star"></i>  Functions <i class="fa fa-fw fa-angle-down pull-right"></i></a>
+                    <ul id="functions" class="collapse">
+                        <li><a href="#" onclick="funcDeposit()"><i class="fa fa-university"></i> Deposit</a></li>
+                        <li><a href="#" onclick="funcWithdraw()"><i class="fa fa-money"></i> Withdraw</a></li>
+                        <li><a href="#" onclick="funcTransfer()"><i class="fa fa-exchange"></i> Transfer</a></li>
+                        <li><a href="#" onclick="funcLockAccount()"><i class="fa fa-lock"></i> Lock Account</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#" onclick="registerKey()"><i class="fa fa-key"></i>  Register U2F Key</a>
+                </li>
+                <li>
+                    <a href="#" onclick="myETHBank()"><i class="fa fa-info-circle"></i> My ETH Bank</a>
+                </li>
+                <li>
+                    <a href="#" onclick="recentTxns()"><i class="fa fa-archive"></i> Recent Transactions</a>
+                </li>
+                <li>
+                    <a href="#" onclick="recentAddr()"><i class="fa fa-user"></i> Recent Transaction Address</a>
+                </li>
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </nav>
+    <div id="page-wrapper">
+        <div class="container-fluid">
+            <!-- Page Heading -->
+            <div class="row" id="main" >
+                <div class="col-sm-12 col-md-12 well" id="main-welcome">
+                    <h1><b>Welcome to ETH bank!</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="main-prompt-register">
+                    <h3><i>Please first register with your Yubico key to get functions unlocked.</i></h3>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="main-prompt-lock">
+                    <h3><i>The ETH bank has been locked.</i></h3>
+                </div>
+            </div>
+            <!-- /.row -->
+            <!--User-->
+            <div class="row" id="usage-userInfo">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>User Profile</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-userInfo-basics">
+                    <h3>Basics</h3>
+                    <form id='basics_form'>
+                        <div class="form-group row">
+                            <label for="usage-userInfo-basics" class="col-sm-4 col-form-label"><i>User Address</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-basics-user">
+                                <!--user address-->
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="usage-userInfo-basics" class="col-sm-4 col-form-label"><i>Bank Address</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-basics-bank">
+                                <!--bank address-->
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Set</button>
+                    </form>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-userInfo-custom">
+                    <h3>Custom</h3>
+                    <form id='custom_form'>
+                        <div class="form-group row">
+                            <label for="usage-userInfo-custom" class="col-sm-4 col-form-label"><i>Transfer Limit [Wei]</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-custom-limit">
+                                <!--transfer limit-->
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Set</button>
+                    </form>
+                </div>
+            </div>
+            <!------------------------------------------------------------------------------------------------------------>
+            <!--Register U2F Key-->
+            <div class="row" id="usage-registerKey">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Register U2F Key</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-registerKey-enroll">
+                    <h3>Begin Registration</h3>
+                    <button class="btn btn-primary" onclick="beginRegistration()">Begin</button>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-registerKey-reset">
+                    <h3>Reset</h3>
+                    <button class="btn btn-danger" onclick="clearU2FAll()">Clear Record</button>
+                </div>
+                <div id="usage-registerKey-records">
+                </div>
+            </div>
+            <!--My ETH Bank-->
+            <div class="row" id="usage-myBank">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>My ETH Bank</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-myBank-status">
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-myBank-u2f">
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-myBank-txns">
+                </div>
+            </div>
+            <!--Recent Transactions-->
+            <div class="row" id="usage-recentTxns">
+                <div class="well">
+                    <h1><b>Recent Transactions</b></h1>
+                </div>
+                <div class="well" id="usage-recentTxns-reset">
+                    <h3>Reset</h3>
+                    <button class="btn btn-danger" onclick="clearRecentTxns()">Clear Record</button>
+                </div>
+                <div id="usage-recentTxns-list">
+                </div>
+            </div>
+            <!--Recent Transaction Address-->
+            <div class="row" id="usage-recentTxnAddr">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Recent Transaction Address</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-recentTxnAddr-reset">
+                    <h3>Reset</h3>
+                    <button class="btn btn-danger" onclick="clearRecentTxnAddr()">Clear Record</button>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-recentTxnAddr-list">
+                </div>
+            </div>
+            <!------------------------------------------------------------------------------------------------------------>
+            <!--Deposit-->
+            <div class="row" id="usage-deposit">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Deposit</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-deposit-form">
+                    <form id='deposit_form'>
+                        <div class="form-group row">
+                            <label for="usage-deposit-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
+                            <div class="col-sm-12">
+                                <input type="text" class="form-control" id="usage-deposit-form-value">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Deposit</button>
+                    </form>
+                </div>
+            </div>
+            <!--Withdraw-->
+            <div class="row" id="usage-withdraw">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Withdraw</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-withdraw-form">
+                    <form id='withdraw_form'>
+                        <div class="form-group row">
+                            <label for="usage-withdraw-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
+                            <div class="col-sm-12">
+                                <input type="text" class="form-control" id="usage-withdraw-form-value">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Withdraw</button>
+                    </form>
+                </div>
+            </div>
+            <!--Transfer-->
+            <div class="row" id="usage-transfer">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Transfer</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-transfer-form">
+                    <form id="transfer_form">
+                        <div class="form-group row">
+                            <label for="usage-transfer-form" class="col-sm-4 col-form-label"><i>Recipient</i></label>
+                            <div class="col-sm-12">
+                                <input type="text" class="form-control" id="usage-transfer-form-to">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="usage-transfer-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
+                            <div class="col-sm-12">
+                                <input type="text" class="form-control" id="usage-transfer-form-value">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Transfer</button>
+                    </form>
+                </div>
+            </div>
+            <!--Lock-->
+            <div class="row" id="usage-lock">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Lock Account</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-lock-lock">
+                    <p><span class="glyphicon glyphicon-exclamation-sign"></span><i> All ETH bank functions will be locked.</i></p>
+                    <button class="btn btn-warning" onclick="lockAccount()">Lock</button>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-lock-unlock">
+                    <p><span class="glyphicon glyphicon-info-sign"></span><i> All ETH bank functions will be unlocked.</i></p>
+                    <button class="btn btn-primary" onclick="unlockAccount()">Unlock</button>
+                </div>
+            </div>
+        </div>
+        <!-- /.container-fluid -->
+    </div>
+    <!-- /#page-wrapper -->
+</div><!-- /#wrapper -->
+<script type="text/javascript">
+$(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+    $(".side-nav .collapse").on("hide.bs.collapse", function() {                   
+        $(this).prev().find(".fa").eq(1).removeClass("fa-angle-right").addClass("fa-angle-down");
+    });
+    $('.side-nav .collapse').on("show.bs.collapse", function() {                        
+        $(this).prev().find(".fa").eq(1).removeClass("fa-angle-down").addClass("fa-angle-right");        
+    });
+});
+</script>
+<!--
+<script src="bundle-bank.js"></script>
+-->
+<script src="./js/bundle-bank.js"></script>
+<script src="./js/bundle-u2f.js"></script>
+</body>
+</html>

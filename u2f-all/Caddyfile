@@ -1,0 +1,7 @@
+localhost:8000 {
+  bind {$ADDRESS}
+  root ./
+  gzip
+  tls victoria-x@sjtu.edu.cn
+  tls ./cert/localhost.crt ./cert/localhost.key
+}
