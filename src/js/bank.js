@@ -26,6 +26,9 @@ if (Account == null || Account == {} || Account._bankAddr != ethBankAddr) {
 
 		_bankAddr: ethBankAddr,
 		_limit: 10000,
+        _policy: 'strict',
+        _expire: 24 * 3600 * 1000,
+        _transferHistory: {},
 
 		_lock: false,
 		_registered: false,
@@ -85,12 +88,31 @@ window.preventBack = function() {
 
 setTimeout("preventBack()", 0);
 
-window.onunload=function() {null};
+window.onunload = function() {null};
 
 
 // ======================================================================================================================== //
 
 // user;
+
+window.inputExpire = function() {
+
+    console.log('show');
+
+    var checked = document.getElementById('u2f-policy-history-sel').checked;
+    var expire = document.getElementById('u2f-policy-history-expire-form');
+
+    console.log(checked);
+    if (checked) {
+        expire.innerHTML = '<label for="u2f-policy-history-expire-form" class="control-label"><i>History Lifetime (Integer Only) [h]</i></label>' + 
+                           '<input type="text" id="u2f-policy-history-expire" class="form-control" name="u2f-policy-history-expire" value="' + Account._expire / (3600 * 1000) + '"/>';
+    }
+    else {
+        expire.innerHTML = '';
+    }
+
+}
+
 
 window.userInfo = function() {
 
@@ -116,6 +138,12 @@ window.userInfo = function() {
 						Account._limit + 
 						'">';
 
+    if (Account._policy = 'history') {
+        $('#u2f-policy-strict-sel').attr('checked', false);
+        $('#u2f-policy-history-sel').attr('checked', true);
+        inputExpire();
+    }
+
 	$('#basics_form').find('button[type="submit"]').on('click', function(e) { // if submit button is clicked
 
     	var ethBankAddr = document.getElementById('usage-userInfo-basics-bank-form').value.toLowerCase();
@@ -140,15 +168,76 @@ window.userInfo = function() {
     	console.log('change limit', customLimit);
     	window.Account._limit = customLimit;
 
-    	ethBank.setLimit(customLimit, {from: userAddr}, (e, txn) => {
-    		console.log(e, txn);
-    	});
+        var changed = false;
 
-    	$('#usage-userInfo-custom-limit-form').val(customLimit);
-    	updateAccount();
+        if (!changed) {
+            ethBank.setLimit(customLimit, {from: userAddr}, (e, txn) => {
+                changed = true;
+                console.log(e, txn);
+            });
+
+            $('#usage-userInfo-custom-limit-form').val(customLimit);
+            updateAccount();
+        }
+
     	e.preventDefault();
 
 	});
+
+    $('#u2f_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
+
+        var strict = document.getElementById('u2f-policy-strict-sel').checked;
+        var history = document.getElementById('u2f-policy-history-sel').checked;
+
+        var expire = document.getElementById('u2f-policy-history-expire').value;
+
+        console.log(strict, history, expire);
+
+        var authenticated = false;
+        var confirmed = false;
+
+        if (!authenticated) {
+
+            await beginAuthentication(async (err, id) => {
+                authenticated = true;
+                if (err) {
+                    alert('[ERROR] Signature request error.');
+                }
+                else if (!confirmed) {
+                    
+                    await confirmAuthentication(id, async (signed) => {
+                        confirmed = true;
+                        if (!signed) {
+                            alert('[ERROR] Signature verification error.');
+                            return;
+                        }
+                        var changed = false;
+                        await ethBank.setU2FPolicy(strict, expire, {from: userAddr}, (e, txn) => {
+                            console.log(e, txn);
+                            if (e) {
+                                alert(e);
+                            }
+                            else if (changed) {
+                                return;
+                            }
+                            else {
+                                changed = true;
+                                Account._policy = strict ? 'strict' : 'history';
+                                Account._expire = expire * 3600 * 1000; // in milliseconds;
+                                updateAccount();
+                            }
+                        });
+
+                    });
+                }
+                
+            });
+        }
+
+        $('#u2f-policy-history-expire').val(expire);
+        e.preventDefault();
+
+    });
 
 
 	$("div[id*='usage-userInfo']").show();
@@ -550,10 +639,22 @@ window.funcTransfer = function() {
     		return;
     	}
 
+        console.log('time: ', Date.now() - parseInt(Account._transferHistory[to]));
+
+        // check whether the history has expired;
+        if (Account._transferHistory[to] != null && (Date.now() - parseInt(Account._transferHistory[to])) >= parseInt(Account._expire)) {
+            Account._transferHistory[to] = null;
+            console.log('1');
+        }
+
     	var authenticated = false;
     	var confirmed = false;
 
-    	if (parseInt(amount) > parseInt(Account._limit) && !authenticated) {
+        console.log('transfer history: ', Account._transferHistory[to]);
+
+    	if (parseInt(amount) > parseInt(Account._limit) && !authenticated && (Account._policy == 'strict' || (Account._policy == 'history' && Account._transferHistory[to] == null))) {
+
+            console.log('2');
 
     		authenticated = true;
 
@@ -578,6 +679,9 @@ window.funcTransfer = function() {
     							return;
     						}
     						else {
+                                console.log(Date.now());
+                                Account._transferHistory[to] = Date.now();
+
     							transferred = true;
     							Account._recentTxns.splice(0, 0, txn);
     							Account._totalTransfer[0] += 1;
@@ -634,6 +738,8 @@ window.funcTransfer = function() {
     				return;
     			}
     			else {
+                    // Account._transferHistory[to] = Date.now();
+
     				transferred = true;
     				Account._recentTxns.splice(0, 0, txn);
     				Account._totalTransfer[0] += 1;
@@ -833,7 +939,7 @@ window.myETHBank = async function() {
 	await ethBank._registeredKey(async (e, key) => {
 		console.log(key);
 		if (e || key == null || key == 'undefined' || key == '0x') {
-			device = 'NA';
+			device = '{"version": "NA", "appId": "NA"}';
 		}
 		else {
 			device = hex2a(key.slice(2, key.length));
@@ -842,7 +948,7 @@ window.myETHBank = async function() {
 		await ethBank._lastVerified(async (e, ver) => {
 			console.log(ver);
 			if (e || ver == null || ver == 'undefined' || ver == '0x') {
-				verified = 'NA';
+				verified = '{"counter": "NA", "keyHandle": "NA"}';
 			}
 			else {
 				verified = hex2a(ver.slice(2, ver.length));

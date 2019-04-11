@@ -252,12 +252,31 @@
                     </form>
                 </div>
                 <div class="col-sm-12 col-md-12 well" id="usage-userInfo-custom">
-                    <h3>Custom</h3>
+                    <h3>Customize Limit</h3>
                     <form id='custom_form'>
                         <div class="form-group row">
                             <label for="usage-userInfo-custom" class="col-sm-4 col-form-label"><i>Transfer Limit [Wei]</i></label>
                             <div class="col-sm-12" id="usage-userInfo-custom-limit">
                                 <!--transfer limit-->
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Set</button>
+                    </form>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-userInfo-u2f">
+                    <h3>Customize U2F Policy</h3>
+                    <form id='u2f_form'>
+                        <div class="form-group row">
+                            <label for="usage-userInfo-u2f" class="col-sm-4 col-form-label"><i>Choose U2F Policy (U2F Required)</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-u2f-policy">
+                                <div>
+                                    <input type="radio" value="strict" name="u2f-policy" checked="checked" onchange="inputExpire()" id="u2f-policy-strict-sel"/> Strict: authentication is required whenever the value exceeds limit.
+                                </div>
+                                <div>
+                                    <input type="radio" value="history" name="u2f-policy" onchange="inputExpire()" id="u2f-policy-history-sel"/> History: authentication is required only if there is no transaction history or history expires.
+                                </div>
+                                <div class="form-group" id="u2f-policy-history-expire-form">
+                                </div>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Set</button>

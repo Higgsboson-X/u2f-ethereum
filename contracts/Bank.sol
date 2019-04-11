@@ -25,6 +25,12 @@ contract Bank {
 
 	uint _limit;
 
+	bool public _strict;
+	// if not strict, history;
+	uint _expire;
+
+	mapping(address => uint) _txnHistory;
+
 	bool public _lock;
 	bool public _registered;
 	bool public _signed;
@@ -47,6 +53,10 @@ contract Bank {
 		_lock = false;
 		_registered = false;
 		_signed = false;
+
+		_strict = true;
+		// _history = false;
+		_expire = 24; // in hours;
 
 		_randNonce = 0;
 
@@ -72,6 +82,7 @@ contract Bank {
 		_;
 
 	}
+
 
 	function client(string clientData, string appId, uint typ) public view returns (bytes) {
 	    
@@ -169,6 +180,16 @@ contract Bank {
 
 	}
 
+	function setU2FPolicy(bool strict, uint expire) public onlyOwner checkReady {
+
+		require(_signed, "Authentication required.");
+		_signed = false;
+
+		_strict = strict;
+		_expire = expire;
+
+	}
+
 
 	function lockBank() public onlyOwner checkSigned {
 
@@ -209,7 +230,7 @@ contract Bank {
 	// Deposit;
 	function deposit(uint amount) public payable onlyOwner checkReady {
 
-		require(msg.value == amount);
+		require(msg.value == amount, "Wrong deposit amount.");
 
 		emit Deposit(msg.sender, address(this), amount);
 
@@ -221,7 +242,7 @@ contract Bank {
 		require(amount > 0, "Withdraw amount should be positive.");
 		require(amount <= address(this).balance, "Not enough balance.");
 
-		if (amount > _limit) {
+		if (amount > _limit && _strict) {
 			require(_signed, "Authentication required.");
 			_signed = false;
 		}
@@ -237,8 +258,11 @@ contract Bank {
 		require(amount <= address(this).balance, "Not enough balance.");
 
 		if (amount > _limit) {
-			require(_signed, "Authentication required.");
-			_signed = false;
+			if (_strict || _txnHistory[to] == 0 || now >= _txnHistory[to] + _expire * 1 hours) {
+				require(_signed, "Authentication required.");
+				_signed = false;
+				_txnHistory[to] = now;
+			}
 		}
 
 		to.transfer(amount);

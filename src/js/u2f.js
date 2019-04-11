@@ -82,6 +82,7 @@ window.fetchU2FRequests = function() {
     }
     
     for (var i = 0; i < records.length; i++) {
+        
         var id = records[i]._id;
         var type = records[i]._type;
         var addr = records[i]._address;

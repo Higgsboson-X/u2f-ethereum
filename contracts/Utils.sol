@@ -114,8 +114,8 @@ library Tools {
     
     function random32(uint nonce) internal view returns (bytes32) {
         
-        // bytes32 random = bytes32(keccak256(abi.encodePacked(msg.sender, blockhash(block.number - 1), block.coinbase, block.difficulty, nonce)));
-        bytes32 random = bytes32(keccak256(abi.encodePacked(msg.sender, nonce)));
+        bytes32 random = bytes32(keccak256(abi.encodePacked(msg.sender, blockhash(block.number - 1), block.coinbase, block.difficulty, nonce)));
+        // bytes32 random = bytes32(keccak256(abi.encodePacked(msg.sender, nonce)));
     
         return random;
 

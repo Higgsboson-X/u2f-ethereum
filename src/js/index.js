@@ -123,6 +123,8 @@ window.showOption = function(name) {
 }
 
 
+
+
 function register() {
 
     data = getFormData('#register_form');
@@ -157,42 +159,6 @@ function register() {
 
         return;
     }
-
-    /*
-    var bank = bankContract.new({from: user}, (bankE, bankAddr) => {
-
-        console.log(bankE, bankAddr);
-
-        console.log('txn: ', bank.transactionHash);
-
-        web3.eth.getTransactionReceipt(bank.transactionHash, (bankErr, bankReceipt) => {
-
-            if (bankErr) {
-                console.log(bankErr);
-            }
-            console.log(bankReceipt);
-            address = bankReceipt.contractAddress;
-
-            var account = {
-                _password: data.user_password,
-                _contract: address
-            }
-
-            window._users[data.user_username] = account;
-
-            console.log('registered: ', data.user_username, account);
-
-            updateUsers();
-
-            $('#dialog').removeClass('dialog-effect-in').removeClass('shakeit');
-            $('#dialog').addClass('dialog-effect-out');
-      
-            $('#successful_registration').addClass('active');
-
-        });
-
-    });
-    */
 
     
     var regexRegister = /__Register_+/;
