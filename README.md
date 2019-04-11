@@ -76,6 +76,12 @@ But you are able to set the limit and change the address of the contract in the 
 
 ![user profile](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/4.png "User Profile")
 
+On the same page, users are able to customize their own U2F policy. This function is available only after U2F registration.
+- `strict`: a U2F authentication is required whenever the transferred value exceeds transfer limit.
+- `history`: a U2F authentication is required only when the transferred value exceeds transfer limit and, either the recipient is an unknown address or the history expires.
+
+![u2f policy](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/13.png "U2F Policy")
+
 To register your U2F token, go to the `Register U2F Key` page and begin registration. After the registration request is generated, it will be shown at the bottom of this page. Make sure to insert your U2F token and click `Continue` to complete registration. Then the registration should be confirmed and you can view the details in the same record panel.
 
 ![u2f registration confirmed](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/3.png "U2F Registration Confirmed")
