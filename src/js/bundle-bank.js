@@ -434,6 +434,9 @@ if (Account == null || Account == {} || Account._bankAddr != ethBankAddr) {
 
 	}
 
+    $('#u2f-policy-history-sel').attr('checked', false);
+    $('#u2f-policy-strict-sel').attr('checked', true);
+
 	window.localStorage.setItem(userAddr, JSON.stringify(Account));
 
 }
@@ -525,7 +528,7 @@ window.userInfo = function() {
 						Account._limit + 
 						'">';
 
-    if (Account._policy = 'history') {
+    if (Account._policy == 'history') {
         $('#u2f-policy-strict-sel').attr('checked', false);
         $('#u2f-policy-history-sel').attr('checked', true);
         inputExpire();
@@ -553,13 +556,15 @@ window.userInfo = function() {
 
     	var customLimit = document.getElementById('usage-userInfo-custom-limit-form').value;
     	console.log('change limit', customLimit);
+        e.preventDefault();
+
     	window.Account._limit = customLimit;
 
         var changed = false;
 
         if (!changed) {
+            changed = true;
             ethBank.setLimit(customLimit, {from: userAddr}, (e, txn) => {
-                changed = true;
                 console.log(e, txn);
             });
 
@@ -567,7 +572,8 @@ window.userInfo = function() {
             updateAccount();
         }
 
-    	e.preventDefault();
+    	
+        userInfo();
 
 	});
 
@@ -580,20 +586,20 @@ window.userInfo = function() {
 
         console.log(strict, history, expire);
 
+        e.preventDefault();
+
         var authenticated = false;
         var confirmed = false;
 
         if (!authenticated) {
-
+            authenticated = true;
             await beginAuthentication(async (err, id) => {
-                authenticated = true;
                 if (err) {
                     alert('[ERROR] Signature request error.');
                 }
                 else if (!confirmed) {
-                    
+                    confirmed = true;
                     await confirmAuthentication(id, async (signed) => {
-                        confirmed = true;
                         if (!signed) {
                             alert('[ERROR] Signature verification error.');
                             return;
@@ -622,7 +628,8 @@ window.userInfo = function() {
         }
 
         $('#u2f-policy-history-expire').val(expire);
-        e.preventDefault();
+        
+        userInfo();
 
     });
 
