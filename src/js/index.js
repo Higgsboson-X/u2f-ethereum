@@ -1,3 +1,5 @@
+window.sha256 = require('js-sha256').sha256;
+
 window.compiledRegister = require('../../build/contracts/Register.json');
 window.compiledAuthenticate = require('../../build/contracts/Authenticate.json');
 window.compiledBank = require('../../build/contracts/Bank.json');
@@ -142,7 +144,7 @@ function register() {
         bank = bankContract.at(address);
 
         var account = {
-            _password: data.user_password,
+            _password: sha256(user + data.user_password),
             _contract: address
         }
 
@@ -236,7 +238,7 @@ function register() {
                                         address = bankReceipt.contractAddress;
 
                                         var account = {
-                                            _password: data.user_password,
+                                            _password: sha256(user + data.user_password),
                                             _contract: address
                                         }
 
@@ -378,7 +380,8 @@ function validate_login_form(form, data) {
         return false; // stop the script if validation is triggered
     }
 
-    if (data.user_password != window._users[data.user_username.toLowerCase()]._password) {
+    // changed: user._password = sha256(username + password)
+    if (sha256(data.user_username.toLowerCase() + data.user_password) != window._users[data.user_username.toLowerCase()]._password) {
         addFormError(form["user_password"], 'Wrong password');
         return false; // stop the script if validation is triggered
     }
