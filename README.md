@@ -129,4 +129,5 @@ and copy the address of deployed `Manager.sol`.
 
 ## Notes
 1. The authentication records can be found in the `Register U2F Key` page.
-2. More policies might be explored in future development.
+2. Make sure the `dir` value in `bs-config.js` file is `/src/` for the bank version and `/policy/` for the manager version.
+3. More policies might be explored in future development.
