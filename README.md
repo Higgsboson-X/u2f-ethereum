@@ -129,4 +129,4 @@ and copy the address of deployed `Manager.sol`.
 
 ## Notes
 1. The authentication records can be found in the `Register U2F Key` page.
-2. Users can set transfer limit, change password and customize policy on the `Info` page. Note that customizing policy requires U2F authentication.
+2. More policies might be explored in future development.
