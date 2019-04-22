@@ -1,5 +1,5 @@
 # U2F-Ethereum
-ETH Bank DApp using U2F-Solidity.
+ETH bank and manager DApp using U2F-Solidity.
 
 ## Overview
 This is a personal bank DApp which uses U2F-solidity for 2nd factor authentication. The bank helps users manage their funds and features functions including deposit, withdraw, transfer, and lock account in case of insecurities. The users can set a limit for deposit, withdraw, and transfer. When the total value involved in these functions exceed the limit, the user's 2nd factor authentication is required.
@@ -41,7 +41,7 @@ $ npm run dev
 If you want to deploy the Bank contract by yourself, in a separate terminal:
 ```
 $ truffle console --network ganache
-$ truffle migrate --reset
+> migrate --reset
 ```
 
 Then the smart contrats and the libraries will be deployed and the details will be displayed like the following:
@@ -117,6 +117,16 @@ In the `Recent Transaction Address` page, transaction records with recent intera
 
 ![recent txn address](https://github.com/Higgsboson-X/u2f-ethereum/blob/master/images/12.png "Recent Txn Address")
 
+## U2F-Ethereum-Manager
+The policy version of ETH manager is an alternative version of ETH bank. It allows multiple users to register on a single smart contract, but does not include deposit and withdraw functions. Namely, it does not explicitly stores tokens for the user, but only serves as a manager that handles transactions for the registered user.
+
+The user interface is similar to the bank version, but requires a `Manager Address` in the register page. This address is obtained by running
+```
+$ truffle console --network ganache
+> migrate --reset
+```
+and copy the address of deployed `Manager.sol`.
+
 ## Notes
-1. The change password function is not yet implemented.
-2. The authentication records can be found in the `Register U2F Key` page.
+1. The authentication records can be found in the `Register U2F Key` page.
+2. Users can set transfer limit, change password and customize policy on the `Info` page. Note that customizing policy requires U2F authentication.
