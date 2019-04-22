@@ -910,10 +910,11 @@ module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.c
 window.qs = require('query-string');
 window.sha256 = require('js-sha256').sha256;
 
-window.ethBankAddr = qs.parse(window.location.search).addr;
+window.ethManagerAddr = qs.parse(window.location.search).addr;
 window.userAddr = qs.parse(window.location.search).user;
 
-window.ethBank = window.bankContract.at(ethBankAddr);
+// window.ethManager = window.managerContract.at(ethManagerAddr);
+
 
 /*
 
@@ -931,11 +932,11 @@ window.ethBank = window.bankContract.at(ethBankAddr);
 */
 window.Account = JSON.parse(localStorage.getItem(userAddr));
 
-if (Account == null || Account == {} || Account._bankAddr != ethBankAddr) {
+if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) {
 
 	window.Account = {
 
-		_bankAddr: ethBankAddr,
+		_managerAddr: ethManagerAddr,
 		_limit: 10000,
         _policy: 'strict',
         _expire: 24 * 3600 * 1000,
@@ -952,9 +953,9 @@ if (Account == null || Account == {} || Account._bankAddr != ethBankAddr) {
 		_recentTxns: [],
 
 		// times, amount;
-		_totalDeposit: [0, 0],
-		_totalWithdraw: [0, 0],
-		_totalTransfer: [0, 0]
+		_totalTransfer: [0, 0],
+        // available policies;
+        _policyList: ['strict', 'history']
 
 	}
 
@@ -1013,13 +1014,13 @@ window.inputExpire = function() {
 
     console.log('show');
 
-    var checked = document.getElementById('u2f-policy-history-sel').checked;
-    var expire = document.getElementById('u2f-policy-history-expire-form');
+    var checked = document.getElementById('policy-history-sel').checked;
+    var expire = document.getElementById('policy-history-expire-form');
 
     console.log(checked);
     if (checked) {
-        expire.innerHTML = '<label for="u2f-policy-history-expire-form" class="control-label"><i>History Lifetime (Integer Only) [h]</i></label>' + 
-                           '<input type="text" id="u2f-policy-history-expire" class="form-control" name="u2f-policy-history-expire" value="' + Account._expire / (3600 * 1000) + '"/>';
+        expire.innerHTML = '<label for="policy-history-expire-form" class="control-label"><i>History Lifetime (Integer Only) [h]</i></label>' + 
+                           '<input type="text" id="policy-history-expire" class="form-control" name="policy-history-expire" value="' + Account._expire / (3600 * 1000) + '"/>';
     }
     else {
         expire.innerHTML = '';
@@ -1040,10 +1041,10 @@ window.userInfo = function() {
 						userAddr + 
 						'">';
 
-	var bank = document.getElementById('usage-userInfo-basics-bank');
-	bank.innerHTML = '';
-	bank.innerHTML += '<input type="text" class="form-control" id="usage-userInfo-basics-bank-form" value="' + 
-						ethBankAddr + 
+	var manager = document.getElementById('usage-userInfo-basics-manager');
+	manager.innerHTML = '';
+	manager.innerHTML += '<input type="text" class="form-control" id="usage-userInfo-basics-manager-form" value="' + 
+						ethManagerAddr + 
 						'">';
 
 	var limit = document.getElementById('usage-userInfo-custom-limit');
@@ -1053,25 +1054,25 @@ window.userInfo = function() {
 						'">';
 
     if (Account._policy == 'history') {
-        $('#u2f-policy-strict-sel').attr('checked', false);
-        $('#u2f-policy-history-sel').attr('checked', true);
+        $('#policy-strict-sel').attr('checked', false);
+        $('#policy-history-sel').attr('checked', true);
         inputExpire();
     }
 
 	$('#basics_form').find('button[type="submit"]').on('click', function(e) { // if submit button is clicked
 
-    	var ethBankAddr = document.getElementById('usage-userInfo-basics-bank-form').value.toLowerCase();
-    	console.log('change bank', ethBankAddr);
-    	window.Account._bankAddr = ethBankAddr;
+    	var ethManagerAddr = document.getElementById('usage-userInfo-basics-manager-form').value.toLowerCase();
+    	console.log('change bank', ethManagerAddr);
+    	window.Account._managerAddr = ethManagerAddr;
 
-    	window.ethBank = window.bankContract.at(ethBankAddr);
+    	window.ethManager = window.managerContract.at(ethManagerAddr);
 
-    	$('#usage-userInfo-custom-bank-form').val(ethBankAddr);
+    	$('#usage-userInfo-custom-manager-form').val(ethManagerAddr);
     	window.Account = null;
     	updateAccount();
     	e.preventDefault();
 
-    	url = './myBank?user=' + userAddr + '&addr=' + ethBankAddr;
+    	url = './myAccount?user=' + userAddr + '&addr=' + ethManagerAddr;
     	window.location.href = url;
 
 	});
@@ -1088,25 +1089,33 @@ window.userInfo = function() {
 
         if (!changed) {
             changed = true;
-            ethBank.setLimit(customLimit, {from: userAddr}, (e, txn) => {
+            ethManager.setLimit(customLimit, {from: userAddr}, (e, txn) => {
                 console.log(e, txn);
+                userInfo();
             });
 
             $('#usage-userInfo-custom-limit-form').val(customLimit);
             updateAccount();
-            userInfo();
         }
 
 	});
 
-    $('#u2f_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
+    $('#policy_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
 
-        var strict = document.getElementById('u2f-policy-strict-sel').checked;
-        var history = document.getElementById('u2f-policy-history-sel').checked;
+        var strict = document.getElementById('policy-strict-sel').checked;
+        var history = document.getElementById('policy-history-sel').checked;
 
-        var expire = document.getElementById('u2f-policy-history-expire').value;
+        var policy;
+        if (strict) {
+            policy = 0;
+        }
+        else if (history) {
+            policy = 1;
+        }
 
-        console.log(strict, history, expire);
+        var expire = document.getElementById('policy-history-expire').value;
+
+        console.log(policy, expire);
 
         e.preventDefault();
 
@@ -1127,7 +1136,7 @@ window.userInfo = function() {
                             return;
                         }
                         var changed = false;
-                        await ethBank.setU2FPolicy(strict, expire, {from: userAddr}, (e, txn) => {
+                        await ethManager.setPolicy(policy, expire, {from: userAddr}, (e, txn) => {
                             console.log(e, txn);
                             if (e) {
                                 alert(e);
@@ -1137,7 +1146,7 @@ window.userInfo = function() {
                             }
                             else {
                                 changed = true;
-                                Account._policy = strict ? 'strict' : 'history';
+                                Account._policy = Account._policyList[policy];
                                 Account._expire = expire * 3600 * 1000; // in milliseconds;
                                 updateAccount();
                                 userInfo();
@@ -1150,8 +1159,8 @@ window.userInfo = function() {
             });
         }
 
-        $('#u2f-policy-history-expire').val(expire);
-
+        $('#policy-history-expire').val(expire);
+        
     });
 
 
@@ -1240,325 +1249,6 @@ window.promptLock = function() {
 
 // functions;
 
-window.funcDeposit = function() {
-
-	console.log('funcDeposit');
-
-	if (!Account._registered) {
-		promptRegister();
-		return;
-	}
-
-	if (Account._lock) {
-		promptLock();
-		return;
-	}
-
-	// modifies: Account._recentTxns, Account._recentTxnAddr, Account._totalDeposit;
-	$('#deposit_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
-
-		e.preventDefault();
-
-    	var amount = document.getElementById('usage-deposit-form-value').value;
-    	console.log('deposit', amount);
-
-    	document.getElementById('deposit_form').reset();
-
-    	if (amount == null || parseInt(amount) <= 0 || amount == '') {
-			return;
-		}
-
-    	var authenticated = false;
-    	var confirmed = false;
-
-    	if (parseInt(amount) > parseInt(Account._limit) && !authenticated) {
-
-    		authenticated = true;
-
-    		await beginAuthentication(async (err, id) => {
-    			if (err) {
-    				alert('[ERROR] Signature request error.');
-    			}
-    			else if (!confirmed) {
-    				confirmed = true;
-    				await confirmAuthentication(id, async (signed) => {
-    					if (!signed) {
-    						alert('[ERROR] Signature verification error.');
-    						return;
-    					}
-    					var deposited = false;
-    					await ethBank.deposit(amount, {from: userAddr, value: web3.toWei(amount, "wei")}, (e, txn) => {
-    						console.log(e, txn);
-    						if (e) {
-    							alert(e);
-    						}
-    						else if (deposited) {
-    							return;
-    						}
-    						else {
-    							deposited = true;
-    							Account._recentTxns.splice(0, 0, txn);
-    							Account._totalDeposit[0] += 1;
-    							Account._totalDeposit[1] = parseInt(Account._totalDeposit[1]) + parseInt(amount);
-
-    							var found = false;
-                                var date = new Date();
-    							var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    							var i;
-    							for (i = 0; i < Account._recentTxnAddr.length; i++) {
-    								if (Account._recentTxnAddr[i]._address == ethBankAddr) {
-    									found = true;
-    									window.Account._recentTxnAddr[i]._lastTxnTimeStamp = time;
-    									window.Account._recentTxnAddr[i]._largestTxnAmount = parseInt(Account._recentTxnAddr[i]._largestTxnAmount) > parseInt(amount) ? parseInt(Account._recentTxnAddr[i]._largestTxnAmount) : parseInt(amount);
-    									window.Account._recentTxnAddr[i]._accumulatedTxns += 1;
-    									updateAccount();
-    									break;
-    								}
-    							}
-    							if (!found) {
-    								
-    								var addr = {
-	
-										_address: ethBankAddr,
-										_lastTxnTimeStamp: time,
-										_largestTxnAmount: amount,
-										_accumulatedTxns: 1
-
-									};
-									window.Account._recentTxnAddr.splice(0, 0, addr);
-									updateAccount();
-								}
-								
-    						}
-    					});
-
-    				});
-    			}
-    			
-    		});
-    	}
-
-    	else {
-    		var deposited = false;
-    		await ethBank.deposit(amount, {from: userAddr, value: web3.toWei(amount, "wei")}, (e, txn) => {
-    			
-    			console.log(e, txn);
-    			if (e) {
-    				alert(e);
-    				return;
-    			}
-    			else if (deposited) {
-    				return;
-    			}
-    			else {
-    				deposited = true;
-    				Account._recentTxns.splice(0, 0, txn);
-    				Account._totalDeposit[0] += 1;
-    				Account._totalDeposit[1] = parseInt(Account._totalDeposit[1]) + parseInt(amount);
-    				
-    				var found = false;
-                    var date = new Date();
-    				var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    				var i;
-    				for (i = 0; i < Account._recentTxnAddr.length; i++) {
-    					if (Account._recentTxnAddr[i]._address == ethBankAddr) {
-    						found = true;
-    						window.Account._recentTxnAddr[i]._lastTxnTimeStamp = time;
-    						window.Account._recentTxnAddr[i]._largestTxnAmount = parseInt(Account._recentTxnAddr[i]._largestTxnAmount) > parseInt(amount) ? parseInt(Account._recentTxnAddr[i]._largestTxnAmount) : parseInt(amount);
-    						window.Account._recentTxnAddr[i]._accumulatedTxns += 1;
-    						updateAccount();
-   							break;
-    					}
-    				}
-    				if (!found) {
-    					
-    					var addr = {
-
-							_address: ethBankAddr,
-							_lastTxnTimeStamp: time,
-							_largestTxnAmount: amount,
-							_accumulatedTxns: 1
-
-						};
-						window.Account._recentTxnAddr.splice(0, 0, addr);
-						updateAccount();
-					}
-    			}
-    		});
-
-    	}
-
-    	
-
-	});
-
-	$("div[id*='main']").hide();
-	$("div[id*='usage']").hide();
-
-	$("div[id*='usage-deposit']").show();
-
-
-}
-
-
-window.funcWithdraw = function() {
-
-	console.log('funcWithdraw');
-
-	if (!Account._registered) {
-		promptRegister();
-		return;
-	}
-
-	if (Account._lock) {
-		promptLock();
-		return;
-	}
-
-	// modifies: Account._recentTxns, Account._recentTxnAddr, Account._totalDeposit;
-	$('#withdraw_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
-
-		e.preventDefault();
-
-    	var amount = document.getElementById('usage-withdraw-form-value').value;
-    	console.log('withdraw', amount);
-
-    	document.getElementById('withdraw_form').reset();
-
-    	if (amount == null || parseInt(amount) <= 0 || amount == '') {
-			return;
-		}
-
-    	var authenticated = false;
-    	var confirmed = false;
-
-    	if (parseInt(amount) > parseInt(Account._limit) && !authenticated) {
-
-    		authenticated = true;
-
-    		await beginAuthentication(async (err, id) => {
-    			if (err) {
-    				alert('[ERROR] Signature request error.');
-    			}
-    			else if (!confirmed) {
-    				confirmed = true;
-    				await confirmAuthentication(id, async (signed) => {
-    					if (!signed) {
-    						alert('[ERROR] Signature verification error.');
-    						return;
-    					}
-    					var withdrawn = false;
-    					await ethBank.withdraw(amount, {from: userAddr}, (e, txn) => {
-    						console.log(e, txn);
-    						if (e) {
-    							alert(e);
-    						}
-    						else if (withdrawn) {
-    							return;
-    						}
-    						else {
-    							withdrawn = true;
-    							Account._recentTxns.splice(0, 0, txn);
-    							Account._totalWithdraw[0] += 1;
-    							Account._totalWithdraw[1] = parseInt(Account._totalWithdraw[1]) + parseInt(amount);
-
-    							var found = false;
-                                var date = new Date();
-    							var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    							var i;
-    							for (i = 0; i < Account._recentTxnAddr.length; i++) {
-    								if (Account._recentTxnAddr[i]._address == ethBankAddr) {
-    									found = true;
-    									window.Account._recentTxnAddr[i]._lastTxnTimeStamp = time;
-    									window.Account._recentTxnAddr[i]._largestTxnAmount = parseInt(Account._recentTxnAddr[i]._largestTxnAmount) > parseInt(amount) ? parseInt(Account._recentTxnAddr[i]._largestTxnAmount) : parseInt(amount);
-    									window.Account._recentTxnAddr[i]._accumulatedTxns += 1;
-    									updateAccount();
-    									break;
-    								}
-    							}
-    							if (!found) {
-    								
-    								var addr = {
-	
-										_address: ethBankAddr,
-										_lastTxnTimeStamp: time,
-										_largestTxnAmount: amount,
-										_accumulatedTxns: 1
-
-									};
-									window.Account._recentTxnAddr.splice(0, 0, addr);
-									updateAccount();
-								}
-								
-    						}
-    					});
-
-    				});
-    			}
-    			
-    		});
-    	}
-
-    	else {
-    		var withdrawn = false;
-    		await ethBank.withdraw(amount, {from: userAddr}, (e, txn) => {
-    			
-    			console.log(e, txn);
-    			if (e) {
-    				alert(e);
-    				return;
-    			}
-    			else if (withdrawn) {
-    				return;
-    			}
-    			else {
-    				withdrawn = true;
-    				Account._recentTxns.splice(0, 0, txn);
-    				Account._totalWithdraw[0] += 1;
-    				Account._totalWithdraw[1] = parseInt(Account._totalWithdraw[1]) + parseInt(amount);
-    				
-    				var found = false;
-                    var date = new Date();
-    				var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    				var i;
-    				for (i = 0; i < Account._recentTxnAddr.length; i++) {
-    					if (Account._recentTxnAddr[i]._address == ethBankAddr) {
-    						found = true;
-    						window.Account._recentTxnAddr[i]._lastTxnTimeStamp = time;
-    						window.Account._recentTxnAddr[i]._largestTxnAmount = parseInt(Account._recentTxnAddr[i]._largestTxnAmount) > parseInt(amount) ? parseInt(Account._recentTxnAddr[i]._largestTxnAmount) : parseInt(amount);
-    						window.Account._recentTxnAddr[i]._accumulatedTxns += 1;
-    						updateAccount();
-   							break;
-    					}
-    				}
-    				if (!found) {
-    					
-    					var addr = {
-
-							_address: ethBankAddr,
-							_lastTxnTimeStamp: time,
-							_largestTxnAmount: amount,
-							_accumulatedTxns: 1
-
-						};
-						window.Account._recentTxnAddr.splice(0, 0, addr);
-						updateAccount();
-					}
-    			}
-    		});
-
-    	}
-
-	});
-
-	$("div[id*='main']").hide();
-	$("div[id*='usage']").hide();
-
-	$("div[id*='usage-withdraw']").show();
-
-}
-
-
 window.funcTransfer = function() {
 
 	console.log('funcTransfer');
@@ -1620,7 +1310,7 @@ window.funcTransfer = function() {
     						return;
     					}
     					var transferred = false;
-    					await ethBank.transferViaBank(to, amount, {from: userAddr}, (e, txn) => {
+    					await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
     						console.log(e, txn);
     						if (e) {
     							alert(e);
@@ -1677,7 +1367,7 @@ window.funcTransfer = function() {
 
     	else {
     		var transferred = false;
-    		await ethBank.transferViaBank(to, amount, {from: userAddr}, (e, txn) => {
+    		await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
     			
     			console.log(e, txn);
     			if (e) {
@@ -1778,7 +1468,7 @@ window.lockAccount = async function() {
     				alert('[ERROR] Signature verification error.');
     				return;
     			}
-    			await ethBank.lockBank({from: userAddr}, (e, txn) => {
+    			await ethManager.lockAccount({from: userAddr}, (e, txn) => {
     				console.log(e, txn);
     				if (e) {
     					alert(e);
@@ -1817,7 +1507,7 @@ window.unlockAccount = async function() {
     				alert('[ERROR] Signature verification error.');
     				return;
     			}
-    			await ethBank.unlockBank({from: userAddr}, (e, txn) => {
+    			await ethManager.unlockAccount({from: userAddr}, (e, txn) => {
     				console.log(e, txn);
     				if (e) {
     					alert(e);
@@ -1858,65 +1548,64 @@ window.registerKey = function() {
 
 
 
-window.myETHBank = async function() {
+window.myAccount = async function() {
 
-	console.log('myETHBank');
+	console.log('myAccount');
 	$("div[id*='main']").hide();
 	$("div[id*='usage']").hide();
 
 	// status;
-	await ethBank._lock(async (e, lock) => {
-		window.Account._lock = lock;
-		var balance;
-		await ethBank.getBalance({from: userAddr}, async (e, bal) => {
-			console.log(balance);
-			balance = parseInt(bal);
+	await ethManager.getUserInfo(async (e, result) => {
+		console.log(e, result);
 
-			var status = document.getElementById('usage-myBank-status');
-			status.innerHTML = '';
-			status.innerHTML += '<h3>Status</h3>' + 
-								'<dl class="dl-horizontal">' + 
-								'<dt>Owner</dt><dd>' + userAddr + '</dd>' + 
-								'<dt>Bank</dt><dd>' + ethBankAddr + '</dd>' + 
-								'<dt>Locked</dt><dd>' + Account._lock + '</dd>' + 
-								'<dt>Balance</dt><dd>' + balance + ' Wei</dd>';
-			updateAccount();
-		});
+        lock = result[4];
+
+        window.Account._lock = lock;
+
+		var status = document.getElementById('usage-myAccount-status');
+		status.innerHTML = '';
+		status.innerHTML += '<h3>Status</h3>' + 
+							'<dl class="dl-horizontal">' + 
+							'<dt>Owner</dt><dd>' + userAddr + '</dd>' + 
+							'<dt>Manager</dt><dd>' + ethManagerAddr + '</dd>' + 
+							'<dt>Locked</dt><dd>' + Account._lock + '</dd>';
+		updateAccount();
 	});
 	
 	// u2f;
-	var device;
-	await ethBank._registeredKey(async (e, key) => {
-		console.log(key);
-		if (e || key == null || key == 'undefined' || key == '0x') {
+	var device, verified;
+	await ethManager.getUserU2F(async (e, result) => {
+        console.log(result);
+        var registeredKey = result[1];
+		console.log(registeredKey);
+		if (e || registeredKey == null || registeredKey == 'undefined' || registeredKey == '0x') {
 			device = '{"version": "NA", "appId": "NA"}';
 		}
 		else {
-			device = hex2a(key.slice(2, key.length));
+			device = hex2a(registeredKey.slice(2, registeredKey.length));
 		}
-		var verified;
-		await ethBank._lastVerified(async (e, ver) => {
-			console.log(ver);
-			if (e || ver == null || ver == 'undefined' || ver == '0x') {
-				verified = '{"counter": "NA", "keyHandle": "NA"}';
-			}
-			else {
-				verified = hex2a(ver.slice(2, ver.length));
-			}
-			console.log(device);
-			var u2f = document.getElementById('usage-myBank-u2f');
-			u2f.innerHTML = '';
-			u2f.innerHTML += '<h3>U2F</h3>' + 
-					 		 '<dl class="dl-horizontal">' + 
-					 		 '<dt>Registered</dt><dd>' + Account._registered + '</dd>' + 
-					 		 '<dt>Transfer Limit</dt><dd>' + Account._limit + ' Wei</dd>' + 
-					 		 '<dt>Registered Key Info</dt><dd>' + JSON.parse(device)['version'] + '<br>' +
-					 		 JSON.parse(device)['appId'] + '</dd>' + 
-					 		 '<dt>Counter</dt><dd>' + JSON.parse(verified)['counter'] + '</dd>';
-		});
+        console.log(device);
+        var lastVerified = result[3];
+		console.log(lastVerified);
+		if (e || lastVerified == null || lastVerified == 'undefined' || lastVerified == '0x') {
+			verified = '{"counter": "NA", "keyHandle": "NA"}';
+		}
+		else {
+			verified = hex2a(lastVerified.slice(2, lastVerified.length));
+		}
+        console.log(verified);
+		var u2f = document.getElementById('usage-myAccount-u2f');
+		u2f.innerHTML = '';
+		u2f.innerHTML += '<h3>U2F</h3>' + 
+				 		 '<dl class="dl-horizontal">' + 
+				 		 '<dt>Registered</dt><dd>' + Account._registered + '</dd>' + 
+				 		 '<dt>Transfer Limit</dt><dd>' + Account._limit + ' Wei</dd>' + 
+				 		 '<dt>Registered Key Info</dt><dd>' + JSON.parse(device)['version'] + '<br>' +
+				 		 JSON.parse(device)['appId'] + '</dd>' + 
+				 		 '<dt>Counter</dt><dd>' + JSON.parse(verified)['counter'] + '</dd>';
 	});
 	
-	var txns = document.getElementById('usage-myBank-txns');
+	var txns = document.getElementById('usage-myAccount-txns');
 	txns.innerHTML = '';
 	txns.innerHTML += '<h3>Transactions</h3>' + 
 					  '<table class="table table-hover">' + 
@@ -1924,13 +1613,11 @@ window.myETHBank = async function() {
 					  '<th>Events</th><th>Count</th><th>Amount [Wei]</th>' + 
 					  '</tr></thead>' + 
 					  '<tbody>' + 
-					  '<tr><td>Deposit</td><td>' + Account._totalDeposit[0] + '</td><td>' + Account._totalDeposit[1] + '</td></tr>' + 
-					  '<tr><td>Withdraw</td><td>' + Account._totalWithdraw[0] + '</td><td>' + Account._totalWithdraw[1] + '</td></tr>' + 
 					  '<tr><td>Transfer</td><td>' + Account._totalTransfer[0] + '</td><td>' + Account._totalTransfer[1] + '</td></tr>' + 
 					  '</tbody></table>';
 
 
-	$("div[id*='usage-myBank']").show();
+	$("div[id*='usage-myAccount']").show();
 
 }
 

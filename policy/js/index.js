@@ -1,8 +1,8 @@
 window.sha256 = require('js-sha256').sha256;
 
-window.compiledRegister = require('../../build/contracts/Register.json');
-window.compiledAuthenticate = require('../../build/contracts/Authenticate.json');
-window.compiledBank = require('../../build/contracts/Bank.json');
+// window.compiledRegister = require('../../build/contracts/Register.json');
+// window.compiledAuthenticate = require('../../build/contracts/Authenticate.json');
+window.compiledManager = require('../../build/contracts/Manager.json');
 
 const Web3 = require('web3');
 // const qs = require('query-string');
@@ -33,38 +33,11 @@ if (window._users == null) {
     address: {_password, _contract};
 */
 
-window.registerLib = window.web3.eth.contract(compiledRegister.abi);
-window.authenticateLib = window.web3.eth.contract(compiledAuthenticate.abi);
-window.bankContract = window.web3.eth.contract(compiledBank.abi);
+// window.registerLib = window.web3.eth.contract(compiledRegister.abi);
+// window.authenticateLib = window.web3.eth.contract(compiledAuthenticate.abi);
+window.managerContract = window.web3.eth.contract(compiledManager.abi);
 
-console.log(bankContract);
-
-/*
-// Deploy bank factory or set address;
-if (localStorage.getItem('factory') != null && localStorage.getItem('factory') != 'undefined') {
-    window.bankFactory = bankFactoryContract.at(localStorage.getItem('factory'));
-    console.log(bankFactory);
-}
-else {
-    var factory = bankFactoryContract.new({from: defaultAccount}, (e, addr) => {
-        console.log(e, addr);
-        var address;
-        console.log('txn: ', factory.transactionHash);
-        web3.eth.getTransactionReceipt(factory.transactionHash, (err, receipt) => {
-            if (err) {
-                console.log(err);
-            }
-            console.log(receipt);
-            address = receipt.contractAddress;
-            window.bankFactory = bankFactoryContract.at(address);
-            console.log(bankFactory);
-            localStorage.setItem('factory', address);
-        });
-    });
-}
-*/
-
-
+console.log(managerContract);
 
 // ======================================================================================================================== //
 
@@ -108,23 +81,10 @@ function login() {
 
     var user = data.user_username.toLowerCase();
 
-    url = './myBank?user=' + user + '&addr=' + _users[user]._contract;
+    url = './myAccount?user=' + user + '&addr=' + _users[user]._contract;
     window.location.href = url;
 
 }
-
-window.showOption = function(name) {
-
-    if (name == 'yes') {
-        $('#user_contract_addr_input').css('visibility', 'visible');
-    }
-    else {
-        $('#user_contract_addr_input').css('visibility', 'hidden');
-    }
-
-}
-
-
 
 
 function register() {
@@ -139,10 +99,14 @@ function register() {
 
     var address;
 
-    if (data.user_contract_addr != '') {
-        address = data.user_contract_addr.toLowerCase();
-        bank = bankContract.at(address);
+    address = data.user_contract_addr.toLowerCase();
+    manager = managerContract.at(address);
 
+    manager.registerForUser({from: user}, (e, txn) => {
+        if (e) {
+            console.log(e);
+        }
+        console.log(txn);
         var account = {
             _password: sha256(user + data.user_password),
             _contract: address
@@ -158,119 +122,9 @@ function register() {
         $('#dialog').addClass('dialog-effect-out');
       
         $('#successful_registration').addClass('active');
-
-        return;
-    }
-
-    
-    var regexRegister = /__Register_+/;
-    var regexAuthenticate = /__Authenticate_+/;
-
-    var deployedRegister = false;
-    var deployedAuthenticate = false;
-    var deployedBank = false;
-
-    // deploy register library;
-    var register = registerLib.new({data: compiledRegister.bytecode, from: user}, (registerE, registerAddr) => {
-
-        console.log('register: ', registerE, registerAddr);
-
-        console.log('txn: ', register.transactionHash);
-
-        if (!registerE && !deployedRegister) {
-
-            deployedRegister = true;
-
-            web3.eth.getTransactionReceipt(register.transactionHash, (registerErr, registerReceipt) => {
-
-                if (registerErr) {
-                    console.log(registerErr);
-                }
-                console.log(registerReceipt);
-                var registerAddress = registerReceipt.contractAddress;
-
-                // deploy authenticate library;
-                var authenticate = authenticateLib.new({data: compiledAuthenticate.bytecode, from: user}, (authenticateE, authenticateAddr) => {
-
-                    console.log('authenticate: ', authenticateE, authenticateAddr);
-
-                    console.log('txn: ', authenticate.transactionHash);
-
-                    if (!authenticateE && !deployedAuthenticate) {
-
-                        deployedAuthenticate = true;
-
-                        web3.eth.getTransactionReceipt(authenticate.transactionHash, (authenticateErr, authenticateReceipt) => {
-
-                            if (authenticateErr) {
-                                console.log(authenticateErr);
-                            }
-                            console.log(authenticateReceipt);
-                            var authenticateAddress = authenticateReceipt.contractAddress;
-
-                            // link register and authenticate library to bank bytecode;
-                            var bankBytecode = compiledBank.bytecode;
-                            while (bankBytecode.match(regexRegister)) {
-                                bankBytecode = bankBytecode.replace(bankBytecode.match(regexRegister)[0], registerAddress.replace('0x', ''));
-                            }
-                            while (bankBytecode.match(regexAuthenticate)) {
-                                bankBytecode = bankBytecode.replace(bankBytecode.match(regexAuthenticate)[0], authenticateAddress.replace('0x', ''));
-                            }
-
-                            // console.log(bankBytecode);
-
-                            var bank = bankContract.new({data: bankBytecode, from: user}, (bankE, bankAddr) => {
-
-                                console.log('bank: ', bankE, bankAddr);
-
-                                console.log('txn: ', bank.transactionHash);
-
-                                if (!bankE && !deployedBank) {
-
-                                    deployedBank = true;
-
-                                    web3.eth.getTransactionReceipt(bank.transactionHash, (bankErr, bankReceipt) => {
-
-                                        if (bankErr) {
-                                            console.log(bankErr);
-                                        }
-                                        console.log(bankReceipt);
-                                        address = bankReceipt.contractAddress;
-
-                                        var account = {
-                                            _password: sha256(user + data.user_password),
-                                            _contract: address
-                                        }
-
-                                        window._users[user] = account;
-
-                                        console.log('registered: ', user, account);
-
-                                        updateUsers();
-
-                                        $('#dialog').removeClass('dialog-effect-in').removeClass('shakeit');
-                                        $('#dialog').addClass('dialog-effect-out');
-      
-                                        $('#successful_registration').addClass('active');
-
-                                    });
-                                }
-
-                            });
-
-                        });
-
-                    }
-
-                });
-
-            });
-
-        }
-
     });
-    
 
+    
 }
 
 // ======================================================================================================================== //
@@ -418,7 +272,7 @@ function validate_registration_form(form, data) {
         return false; // stop the script if validation is triggered
     }
 
-    if (data[''] == 'yes' && (data.user_contract_addr.toLowerCase() == null || data.user_contract_addr.toLowerCase() == '')) {
+    if (data.user_contract_addr.toLowerCase() == null || data.user_contract_addr.toLowerCase() == '') {
         // if password variable is empty
         addFormError(form["user_contract_addr"], "Contract address is not provided");
         return false; // stop the script if validation is triggered

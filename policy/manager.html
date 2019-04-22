@@ -3,7 +3,7 @@
 <head>
 	<link rel="icon" type="image/png" href="./favicon.ico"/>
 	<meta charset="utf-8">
-	<title>ETH Bank</title>
+	<title>ETH Manager</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
 	<style type="text/css">
@@ -191,8 +191,6 @@
                 <li>
                     <a href="#" data-toggle="collapse" data-target="#functions"><i class="fa fa-fw fa-star"></i>  Functions <i class="fa fa-fw fa-angle-down pull-right"></i></a>
                     <ul id="functions" class="collapse">
-                        <li><a href="#" onclick="funcDeposit()"><i class="fa fa-university"></i> Deposit</a></li>
-                        <li><a href="#" onclick="funcWithdraw()"><i class="fa fa-money"></i> Withdraw</a></li>
                         <li><a href="#" onclick="funcTransfer()"><i class="fa fa-exchange"></i> Transfer</a></li>
                         <li><a href="#" onclick="funcLockAccount()"><i class="fa fa-lock"></i> Lock Account</a></li>
                     </ul>
@@ -201,7 +199,7 @@
                     <a href="#" onclick="registerKey()"><i class="fa fa-key"></i>  Register U2F Key</a>
                 </li>
                 <li>
-                    <a href="#" onclick="myETHBank()"><i class="fa fa-info-circle"></i> My ETH Bank</a>
+                    <a href="#" onclick="myAccount()"><i class="fa fa-info-circle"></i> My Account</a>
                 </li>
                 <li>
                     <a href="#" onclick="recentTxns()"><i class="fa fa-archive"></i> Recent Transactions</a>
@@ -218,13 +216,13 @@
             <!-- Page Heading -->
             <div class="row" id="main" >
                 <div class="col-sm-12 col-md-12 well" id="main-welcome">
-                    <h1><b>Welcome to ETH bank!</b></h1>
+                    <h1><b>Welcome to ETH manager!</b></h1>
                 </div>
                 <div class="col-sm-12 col-md-12 well" id="main-prompt-register">
                     <h3><i>Please first register with your Yubico key to get functions unlocked.</i></h3>
                 </div>
                 <div class="col-sm-12 col-md-12 well" id="main-prompt-lock">
-                    <h3><i>The ETH bank has been locked.</i></h3>
+                    <h3><i>Your account has been locked.</i></h3>
                 </div>
             </div>
             <!-- /.row -->
@@ -243,9 +241,9 @@
                             </div>
                         </div>
                         <div class="form-group row">
-                            <label for="usage-userInfo-basics" class="col-sm-4 col-form-label"><i>Bank Address</i></label>
-                            <div class="col-sm-12" id="usage-userInfo-basics-bank">
-                                <!--bank address-->
+                            <label for="usage-userInfo-basics" class="col-sm-4 col-form-label"><i>Manager Address</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-basics-manager">
+                                <!--manager address-->
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Set</button>
@@ -263,19 +261,19 @@
                         <button type="submit" class="btn btn-primary">Set</button>
                     </form>
                 </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-userInfo-u2f">
-                    <h3>Customize U2F Policy</h3>
-                    <form id='u2f_form'>
+                <div class="col-sm-12 col-md-12 well" id="usage-userInfo-policy">
+                    <h3>Customize Policy</h3>
+                    <form id='policy_form'>
                         <div class="form-group row">
-                            <label for="usage-userInfo-u2f" class="col-sm-4 col-form-label"><i>Choose U2F Policy (U2F Required)</i></label>
-                            <div class="col-sm-12" id="usage-userInfo-u2f-policy">
+                            <label for="usage-userInfo-policy" class="col-sm-4 col-form-label"><i>Choose Policy (U2F Required)</i></label>
+                            <div class="col-sm-12" id="usage-userInfo-policy">
                                 <div>
-                                    <input type="radio" value="strict" name="u2f-policy" checked="checked" onchange="inputExpire()" id="u2f-policy-strict-sel"/> Strict: authentication is required whenever the value exceeds limit.
+                                    <input type="radio" value="strict" name="policy" checked="checked" onchange="inputExpire()" id="policy-strict-sel"/> Strict: authentication is required whenever the value exceeds limit.
                                 </div>
                                 <div>
-                                    <input type="radio" value="history" name="u2f-policy" onchange="inputExpire()" id="u2f-policy-history-sel"/> History: authentication is required only if there is no transaction history or history expires.
+                                    <input type="radio" value="history" name="policy" onchange="inputExpire()" id="policy-history-sel"/> History: authentication is required only if there is no transaction history or history expires.
                                 </div>
-                                <div class="form-group" id="u2f-policy-history-expire-form">
+                                <div class="form-group" id="policy-history-expire-form">
                                 </div>
                             </div>
                         </div>
@@ -329,16 +327,16 @@
                 <div id="usage-registerKey-records">
                 </div>
             </div>
-            <!--My ETH Bank-->
-            <div class="row" id="usage-myBank">
+            <!--My ETH Account-->
+            <div class="row" id="usage-myAccount">
                 <div class="col-sm-12 col-md-12 well">
-                    <h1><b>My ETH Bank</b></h1>
+                    <h1><b>My ETH Account</b></h1>
                 </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-myBank-status">
+                <div class="col-sm-12 col-md-12 well" id="usage-myAccount-status">
                 </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-myBank-u2f">
+                <div class="col-sm-12 col-md-12 well" id="usage-myAccount-u2f">
                 </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-myBank-txns">
+                <div class="col-sm-12 col-md-12 well" id="usage-myAccount-txns">
                 </div>
             </div>
             <!--Recent Transactions-->
@@ -366,40 +364,6 @@
                 </div>
             </div>
             <!------------------------------------------------------------------------------------------------------------>
-            <!--Deposit-->
-            <div class="row" id="usage-deposit">
-                <div class="col-sm-12 col-md-12 well">
-                    <h1><b>Deposit</b></h1>
-                </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-deposit-form">
-                    <form id='deposit_form'>
-                        <div class="form-group row">
-                            <label for="usage-deposit-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
-                            <div class="col-sm-12">
-                                <input type="text" class="form-control" id="usage-deposit-form-value">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Deposit</button>
-                    </form>
-                </div>
-            </div>
-            <!--Withdraw-->
-            <div class="row" id="usage-withdraw">
-                <div class="col-sm-12 col-md-12 well">
-                    <h1><b>Withdraw</b></h1>
-                </div>
-                <div class="col-sm-12 col-md-12 well" id="usage-withdraw-form">
-                    <form id='withdraw_form'>
-                        <div class="form-group row">
-                            <label for="usage-withdraw-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
-                            <div class="col-sm-12">
-                                <input type="text" class="form-control" id="usage-withdraw-form-value">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Withdraw</button>
-                    </form>
-                </div>
-            </div>
             <!--Transfer-->
             <div class="row" id="usage-transfer">
                 <div class="col-sm-12 col-md-12 well">
@@ -456,7 +420,7 @@ $(function(){
 <!--
 <script src="bundle-bank.js"></script>
 -->
-<script src="./js/bundle-bank.js"></script>
+<script src="./js/bundle-manager.js"></script>
 <script src="./js/bundle-u2f.js"></script>
 </body>
 </html>

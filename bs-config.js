@@ -1,17 +1,18 @@
 var express = require('express');
 var app = express();
+var dir = '/policy/';
 
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
 
-	res.sendFile(__dirname + '/src/' + 'index.html');
+	res.sendFile(__dirname + dir + 'index.html');
 
 });
 
-app.get('/myBank', (req, res) => {
+app.get('/myAccount', (req, res) => {
 
-	res.sendFile(__dirname + '/src/' + 'bank.html');
+	res.sendFile(__dirname + dir + 'manager.html');
 
 });
 
@@ -19,7 +20,7 @@ app.get('/myBank', (req, res) => {
 module.exports = {
 
     'server': {
-        'baseDir': ['./src'],
+        'baseDir': [__dirname + dir],
         'middleware': {
             1 : app,
         }
