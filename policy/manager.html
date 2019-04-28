@@ -202,6 +202,9 @@
                     <a href="#" onclick="myAccount()"><i class="fa fa-info-circle"></i> My Account</a>
                 </li>
                 <li>
+                    <a href="#" onclick="pendingTxns()"><i class="fa fa-tag"></i> Pending Transactions</a>
+                </li>
+                <li>
                     <a href="#" onclick="recentTxns()"><i class="fa fa-archive"></i> Recent Transactions</a>
                 </li>
                 <li>
@@ -268,12 +271,12 @@
                             <label for="usage-userInfo-policy" class="col-sm-4 col-form-label"><i>Choose Policy (U2F Required)</i></label>
                             <div class="col-sm-12" id="usage-userInfo-policy">
                                 <div>
-                                    <input type="radio" value="strict" name="policy" checked="checked" onchange="inputExpire()" id="policy-strict-sel"/> Strict: authentication is required whenever the value exceeds limit.
+                                    <input type="radio" value="strict" name="policy" checked="checked" onchange="inputPolicy()" id="policy-strict-sel"/> Strict: authentication is required whenever the value exceeds limit.
                                 </div>
                                 <div>
-                                    <input type="radio" value="history" name="policy" onchange="inputExpire()" id="policy-history-sel"/> History: authentication is required only if there is no transaction history or history expires.
+                                    <input type="radio" value="history" name="policy" onchange="inputPolicy()" id="policy-history-sel"/> History: authentication is required only if there is no transaction history or history expires.
                                 </div>
-                                <div class="form-group" id="policy-history-expire-form">
+                                <div class="form-group" id="policy-history-form">
                                 </div>
                             </div>
                         </div>
@@ -339,6 +342,18 @@
                 <div class="col-sm-12 col-md-12 well" id="usage-myAccount-txns">
                 </div>
             </div>
+            <!--Pending Transactions-->
+            <div class="row" id="usage-pendingTxns">
+                <div class="col-sm-12 col-md-12 well">
+                    <h1><b>Pending Transactions</b></h1>
+                </div>
+                <div class="col-sm-12 col-md-12 well" id="usage-pendingTxns-reset">
+                    <h3>Reset</h3>
+                    <button class="btn btn-danger" onclick="clearPendingTxns()">Cancel All</button>
+                </div>
+                <div id="usage-pendingTxns-list">
+                </div>
+            </div>
             <!--Recent Transactions-->
             <div class="row" id="usage-recentTxns">
                 <div class="well">
@@ -381,6 +396,12 @@
                             <label for="usage-transfer-form" class="col-sm-4 col-form-label"><i>Amount [Wei]</i></label>
                             <div class="col-sm-12">
                                 <input type="text" class="form-control" id="usage-transfer-form-value">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="usage-transfer-form" class="col-sm-4 col-form-label"><i>Delay (If Apply, Integer Only) [h]</i></label>
+                            <div class="col-sm-12">
+                                <input type="text" class="form-control" id="usage-transfer-form-delay-time">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Transfer</button>

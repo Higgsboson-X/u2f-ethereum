@@ -31,6 +31,7 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 		_limit: 10000,
         _policy: 'strict',
         _expire: 24 * 3600 * 1000,
+        _pendingTxns: [],
         _transferHistory: {},
 
 		_lock: false,
@@ -60,6 +61,7 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 
 $("div[id*='usage']").hide();
 $("div[id*='prompt']").hide();
+
 
 // ======================================================================================================================== //
 
@@ -101,20 +103,22 @@ window.onunload = function() {null};
 
 // user;
 
-window.inputExpire = function() {
+window.inputPolicy = function() {
 
     console.log('show');
 
-    var checked = document.getElementById('policy-history-sel').checked;
-    var expire = document.getElementById('policy-history-expire-form');
+    var history = document.getElementById('policy-history-sel').checked;
+    var form = document.getElementById('policy-history-form');
 
-    console.log(checked);
-    if (checked) {
-        expire.innerHTML = '<label for="policy-history-expire-form" class="control-label"><i>History Lifetime (Integer Only) [h]</i></label>' + 
-                           '<input type="text" id="policy-history-expire" class="form-control" name="policy-history-expire" value="' + Account._expire / (3600 * 1000) + '"/>';
+    console.log(history);
+
+    if (history) {
+        form.innerHTML = '<label for="policy-history-form" class="control-label"><i>History Lifetime (Integer Only) [h]</i></label>' + 
+                         '<input type="text" id="policy-history-expire" class="form-control" name="policy-history-expire" value="' + Account._expire / (3600 * 1000) + '"/>';
     }
+    
     else {
-        expire.innerHTML = '';
+        form.innerHTML = '';
     }
 
 }
@@ -144,10 +148,15 @@ window.userInfo = function() {
 						Account._limit + 
 						'">';
 
-    if (Account._policy == 'history') {
+    if (Account._policy == 'strict') {
+        $('#policy-strict-sel').attr('checked', true);
+        $('#policy-history-sel').attr('checked', false);
+        inputPolicy();
+    }
+    else if (Account._policy == 'history') {
         $('#policy-strict-sel').attr('checked', false);
         $('#policy-history-sel').attr('checked', true);
-        inputExpire();
+        inputPolicy();
     }
 
 	$('#basics_form').find('button[type="submit"]').on('click', function(e) { // if submit button is clicked
@@ -227,6 +236,9 @@ window.userInfo = function() {
                             return;
                         }
                         var changed = false;
+                        if (expire == null) {
+                            expire = Account._expire;
+                        }
                         await ethManager.setPolicy(policy, expire, {from: userAddr}, (e, txn) => {
                             console.log(e, txn);
                             if (e) {
@@ -361,8 +373,14 @@ window.funcTransfer = function() {
 
 		var to = document.getElementById('usage-transfer-form-to').value
     	var amount = document.getElementById('usage-transfer-form-value').value;
+        var pendingTime = document.getElementById('usage-transfer-form-delay-time').value;
+
+        var delay = !(pendingTime == null || pendingTime == '' || pendingTime <= 0);
+
     	console.log('to', to);
     	console.log('transfer', amount);
+        console.log('delay', delay);
+        console.log('pendingTime', pendingTime);
 
     	document.getElementById('transfer_form').reset();
 
@@ -378,14 +396,14 @@ window.funcTransfer = function() {
             console.log('1');
         }
 
-    	var authenticated = false;
-    	var confirmed = false;
-
-        console.log('transfer history: ', Account._transferHistory[to]);
-
     	if (parseInt(amount) > parseInt(Account._limit) && !authenticated && (Account._policy == 'strict' || (Account._policy == 'history' && Account._transferHistory[to] == null))) {
 
             console.log('2');
+
+            var authenticated = false;
+            var confirmed = false;
+
+            console.log('transfer history: ', Account._transferHistory[to]);
 
     		authenticated = true;
 
@@ -401,7 +419,7 @@ window.funcTransfer = function() {
     						return;
     					}
     					var transferred = false;
-    					await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
+    					await ethManager.transferViaManager(to, amount, pendingTime, {from: userAddr, value: amount}, (e, txn) => {
     						console.log(e, txn);
     						if (e) {
     							alert(e);
@@ -414,6 +432,8 @@ window.funcTransfer = function() {
                                 Account._transferHistory[to] = Date.now();
 
     							transferred = true;
+
+                                // update recent transactions;
     							Account._recentTxns.splice(0, 0, txn);
     							Account._totalTransfer[0] += 1;
     							Account._totalTransfer[1] = parseInt(Account._totalTransfer[1]) + parseInt(amount);
@@ -421,7 +441,21 @@ window.funcTransfer = function() {
     							var found = false;
                                 var date = new Date();
     							var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    							var i;
+    							
+                                // pending transactions;
+                                if (delay) {
+                                    var pendingTxn = {
+                                        _to: to,
+                                        _amount: amount,
+                                        _validTime: Date.now() + pendingTime,
+                                        _createTime: time,
+                                        _pendingTime: pendingTime
+                                    }
+
+                                    Account._pendingTxns.push(pendingTxn);
+                                }
+                                // update recent transaction address;
+                                var i;
     							for (i = 0; i < Account._recentTxnAddr.length; i++) {
     								if (Account._recentTxnAddr[i]._address == to) {
     									found = true;
@@ -458,7 +492,7 @@ window.funcTransfer = function() {
 
     	else {
     		var transferred = false;
-    		await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
+    		await ethManager.transferViaManager(to, amount, pendingTime, {from: userAddr, value: amount}, (e, txn) => {
     			
     			console.log(e, txn);
     			if (e) {
@@ -469,9 +503,10 @@ window.funcTransfer = function() {
     				return;
     			}
     			else {
-                    // Account._transferHistory[to] = Date.now();
 
     				transferred = true;
+
+                    // upate recent transactions;
     				Account._recentTxns.splice(0, 0, txn);
     				Account._totalTransfer[0] += 1;
     				Account._totalTransfer[1] = parseInt(Account._totalTransfer[1]) + parseInt(amount);
@@ -479,7 +514,24 @@ window.funcTransfer = function() {
     				var found = false;
                     var date = new Date();
     				var time = '[' + date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + '] ' + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-    				var i;
+    				
+                    // pending transactions;
+                    if (parseInt(amount) > parseInt(Account._limit) && delay) {
+
+                        var pendingTxn = {
+                            _to: to,
+                            _amount: amount,
+                            _validTime: Date.now() + pendingTime,
+                            _createTime: time,
+                            _pendingTime: pendingTime
+                        }
+
+                        Account._pendingTxns.push(pendingTxn);
+
+                    }
+
+                    // update recent transaction address;
+                    var i;
     				for (i = 0; i < Account._recentTxnAddr.length; i++) {
     					if (Account._recentTxnAddr[i]._address == to) {
     						found = true;
@@ -713,6 +765,109 @@ window.myAccount = async function() {
 }
 
 
+window.pendingTxns = function() {
+
+    console.log('pendingTxns');
+    $("div[id*='main']").hide();
+    $("div[id*='usage']").hide();
+
+    var list = document.getElementById('usage-pendingTxns-list');
+    list.innerHTML = '';
+    var i, txn;
+
+    for (i = 0; i < Account._pendingTxns.length; i++) {
+        txn = Account._pendingTxns[i];
+        list.innerHTML += '<div class="col-sm-12 col-md-12 well"><h3> Pending Transaction ' + (i + 1) +
+                          '<h6><span class="glyphicon glyphicon-user"></span> <i>Recipient</i>: ' + txn._to + '<br>' +
+                          '<span class="glyphicon glyphicon-time"></span> <i>Created Time + Pending Time</i>: ' + txn._createTime + ' + ' + txn._pendingTime + ' [h]</h6>' +
+                          '<div id="usage-pendingTxns-list-' + i + '">Click `Cancel` to cancel the transaction.</div>' +
+                          '<div id="usage-pendingTxns-list-' + i + '-btn"><button class="btn btn-warning" onclick="cancelTxn(\''+i+'\')">Cancel</button></div>' + 
+                          '</div>';
+    }
+
+    $("div[id*='usage-pendingTxns']").show();
+
+}
+
+
+
+window.clearPendingTxns = function() {
+
+    if (Account._pendingTxns == []) {
+        return;
+    }
+
+    ethManager.clearPendingTxns({from: userAddr}, (e, txn) => {
+
+        console.log(e, txn);
+        var list = document.getElementById('usage-pendingTxns-list');
+        list.innerHTML = '';
+
+        Account._pendingTxns = [];
+        updateAccount();
+
+        pendingTxns();
+
+    });
+
+}
+
+
+
+window.cancelTxn = function(id) {
+
+    ethManager.cancelPendingTxn(id, {from: userAddr}, (e, txn) => {
+
+        console.log(e, txn);
+        var button = document.getElementById('usage-pendingTxns-list-' + id + '-btn');
+        button.innerHTML = '<button class="btn btn-default">Cancelled</button>';
+
+        var prompt = document.getElementById('usage-pendingTxns-list-' + id);
+        prompt.innerHTML = 'The transaction has been successfully cancelled.';
+
+        Account._pendingTxns.splice(id, 1);
+        updateAccount();
+
+        pendingTxns();
+
+    });
+
+}
+
+
+window.validatePendingTxns = function() {
+
+    console.log('validatePendingTxns');
+
+    var i, validTxns = [];
+
+    for (i = 0; i < Account._pendingTxns.length; i++) {
+        if (Account._pendingTxns[i]._validTime <= Date.now()) {
+            validTxns.push(i);
+        }
+    }
+
+    if (validTxns == []) {
+        return;
+    }
+
+    ethManager.validatePendingTxns({from: userAddr}, (e, txn) => {
+
+        console.log(e, txn);
+        for (i = 0; i < validTxns.length; i++) {
+            Account._pendingTxns.splice(i, 1);
+        }
+
+        updateAccount();
+
+    });
+
+}
+
+// check valid pending transactions every 1 hour;
+window.setInterval(validatePendingTxns, 60 * 60 * 1000);
+
+
 window.recentTxns = async function() {
 
 	console.log('recentTxns');
@@ -721,7 +876,6 @@ window.recentTxns = async function() {
 
 	var list = document.getElementById('usage-recentTxns-list');
 	list.innerHTML = '';
-	var receipt;
 	var i, txn;
 
 	for (i = 0; i < Account._recentTxns.length; i++) {

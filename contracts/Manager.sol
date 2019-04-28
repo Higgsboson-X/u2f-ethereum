@@ -15,6 +15,14 @@ contract Manager {
 	// server;
 	uint _randNonce;
 
+	struct Txn {
+
+		address _to;
+		uint _amount;
+		uint _validTime;
+
+	}
+
 	struct User {
 		bool _known;
 		// u2f data;
@@ -36,6 +44,8 @@ contract Manager {
 		bool _signed;
 		// history;
 		mapping(address => uint) _txnHistory;
+		// delayed transaction;
+		Txn[] _pendingTxns;
 	}
 
 	mapping(address => User) _users;
@@ -236,7 +246,7 @@ contract Manager {
 
 	// ======================================================================================================================== //
 	// function;
-	function transferViaManager(address to, uint amount) checkReady public payable {
+	function transferViaManager(address to, uint amount, uint pendingTime) checkReady public payable {
 
 		require(amount <= msg.value, "Not enough balance sent.");
 
@@ -248,10 +258,75 @@ contract Manager {
 				_users[msg.sender]._signed = false;
 				_users[msg.sender]._txnHistory[to] = now;
 			}
+			if (pendingTime > 0) {
+
+				Txn memory txn = Txn({_to: to, _amount: amount, _validTime: now + pendingTime * 1 hours});
+				_users[msg.sender]._pendingTxns.push(txn);
+
+				return;
+			}
 		}
 
 		to.transfer(amount);
 
+	}
+
+	function validatePendingTxns() checkReady public payable {
+
+		uint validated = 0;
+		uint i = 0;
+		for (i = 0; i < _users[msg.sender]._pendingTxns.length; i++) {
+
+			if (_users[msg.sender]._pendingTxns[i]._validTime <= now) {
+
+				require(_users[msg.sender]._pendingTxns[i]._amount <= address(this).balance, "Not enough balance.");
+
+				_users[msg.sender]._pendingTxns[i]._to.transfer(_users[msg.sender]._pendingTxns[i]._amount);
+				validated++;
+
+			}
+
+		}
+
+		for (i = 0; i < (_users[msg.sender]._pendingTxns.length - validated); i++) {
+			_users[msg.sender]._pendingTxns[i] = _users[msg.sender]._pendingTxns[i + validated];
+		}
+
+		_users[msg.sender]._pendingTxns.length -= validated;
+
+	}
+
+	function cancelPendingTxn(uint id) checkReady public payable {
+
+		require(_users[msg.sender]._pendingTxns[id]._amount <= address(this).balance, "Not enough balance.");
+
+		msg.sender.transfer(_users[msg.sender]._pendingTxns[id]._amount);
+
+		uint i;
+		for (i = id; i < _users[msg.sender]._pendingTxns.length - 1; i++) {
+			_users[msg.sender]._pendingTxns[i] = _users[msg.sender]._pendingTxns[i + 1];
+		}
+
+		_users[msg.sender]._pendingTxns.length--;
+
+	}
+
+	function clearPendingTxns() checkReady public payable {
+
+		uint i;
+		uint amount = 0;
+		for (i = 0; i < _users[msg.sender]._pendingTxns.length; i++) {
+
+			amount += _users[msg.sender]._pendingTxns[i]._amount;
+
+		}
+
+		require(amount <= address(this).balance, "Not enough balance.");
+
+		msg.sender.transfer(amount);
+
+		delete _users[msg.sender]._pendingTxns;
+		
 	}
 
 
