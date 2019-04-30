@@ -839,7 +839,8 @@ window.validatePendingTxns = function() {
 
     console.log('validatePendingTxns');
 
-    var i, validTxns = [];
+    var i;
+    var validTxns = [];
 
     for (i = 0; i < Account._pendingTxns.length; i++) {
         if (Account._pendingTxns[i]._validTime <= Date.now()) {
@@ -847,20 +848,28 @@ window.validatePendingTxns = function() {
         }
     }
 
-    if (validTxns == []) {
+    console.log('validTxns', validTxns);
+
+    if (validTxns == null || validTxns.length == 0) {
+        console.log('no valid pending transactions');
         return;
     }
+    else {
 
-    ethManager.validatePendingTxns({from: userAddr}, (e, txn) => {
+        console.log('validTxns', validTxns);
 
-        console.log(e, txn);
-        for (i = 0; i < validTxns.length; i++) {
-            Account._pendingTxns.splice(i, 1);
-        }
+        ethManager.validatePendingTxns({from: userAddr}, (e, txn) => {
 
-        updateAccount();
+            console.log(e, txn);
+            for (i = 0; i < validTxns.length; i++) {
+                Account._pendingTxns.splice(i, 1);
+            }
 
-    });
+            updateAccount();
+
+        });
+
+    }
 
 }
 
