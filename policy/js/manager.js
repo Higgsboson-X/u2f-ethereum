@@ -31,6 +31,7 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 		_limit: 10000,
         _policy: 'strict',
         _expire: 24 * 3600 * 1000,
+        _pendingTime: 24 * 3600 * 1000,
         _pendingTxns: [],
         _transferHistory: {},
 
@@ -51,8 +52,8 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 
 	}
 
-    $('#u2f-policy-history-sel').attr('checked', false);
-    $('#u2f-policy-strict-sel').attr('checked', true);
+    $('#u2f-policy-history-sel').prop('checked', false);
+    $('#u2f-policy-strict-sel').prop('checked', true);
 
 	window.localStorage.setItem(userAddr, JSON.stringify(Account));
 
@@ -61,6 +62,9 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 
 $("div[id*='usage']").hide();
 $("div[id*='prompt']").hide();
+
+// used to prevent double operations;
+window._busy = false;
 
 
 // ======================================================================================================================== //
@@ -149,15 +153,19 @@ window.userInfo = function() {
 						'">';
 
     if (Account._policy == 'strict') {
-        $('#policy-strict-sel').attr('checked', true);
-        $('#policy-history-sel').attr('checked', false);
+        console.log('strict');
+        $('#policy-history-sel').prop('checked', false);
+        $('#policy-strict-sel').prop('checked', true);
         inputPolicy();
     }
     else if (Account._policy == 'history') {
-        $('#policy-strict-sel').attr('checked', false);
-        $('#policy-history-sel').attr('checked', true);
+        console.log('history');
+        $('#policy-strict-sel').prop('checked', false);
+        $('#policy-history-sel').prop('checked', true);
         inputPolicy();
     }
+
+    $('#policy-delay-pending').val(Account._pendingTime / (3600 * 1000));
 
 	$('#basics_form').find('button[type="submit"]').on('click', function(e) { // if submit button is clicked
 
@@ -182,6 +190,10 @@ window.userInfo = function() {
     	var customLimit = document.getElementById('usage-userInfo-custom-limit-form').value;
     	console.log('change limit', customLimit);
         e.preventDefault();
+        if (Account._limit == customLimit) {
+            console.log('no change');
+            return;
+        }
 
     	window.Account._limit = customLimit;
 
@@ -192,15 +204,22 @@ window.userInfo = function() {
             ethManager.setLimit(customLimit, {from: userAddr}, (e, txn) => {
                 console.log(e, txn);
                 userInfo();
+                $('#usage-userInfo-custom-limit-form').val(customLimit);
+                updateAccount();
             });
 
-            $('#usage-userInfo-custom-limit-form').val(customLimit);
-            updateAccount();
         }
 
 	});
 
     $('#policy_form').find('button[type="submit"]').on('click', async function(e) { // if submit button is clicked
+
+        if (_busy) {
+            return;
+        }
+        else {
+            window._busy = true;
+        }
 
         var strict = document.getElementById('policy-strict-sel').checked;
         var history = document.getElementById('policy-history-sel').checked;
@@ -214,10 +233,15 @@ window.userInfo = function() {
         }
 
         var expire = document.getElementById('policy-history-expire').value;
+        var delay = document.getElementById('policy-delay-pending').value;
 
-        console.log(policy, expire);
-
+        console.log(policy, expire, delay);
         e.preventDefault();
+
+        if (Account._policyList[Account._policy] == policy && Account._expire == (expire * 3600 * 1000) && Account._pendingTime == (delay * 3600 * 1000)) {
+            console.log('no change');
+            return;
+        }
 
         var authenticated = false;
         var confirmed = false;
@@ -239,7 +263,7 @@ window.userInfo = function() {
                         if (expire == null) {
                             expire = Account._expire;
                         }
-                        await ethManager.setPolicy(policy, expire, {from: userAddr}, (e, txn) => {
+                        await ethManager.setPolicy(policy, expire, delay, {from: userAddr}, (e, txn) => {
                             console.log(e, txn);
                             if (e) {
                                 alert(e);
@@ -251,8 +275,11 @@ window.userInfo = function() {
                                 changed = true;
                                 Account._policy = Account._policyList[policy];
                                 Account._expire = expire * 3600 * 1000; // in milliseconds;
+                                Account._pendingTime = delay * 3600 * 1000; // in milliseconds;
                                 updateAccount();
                                 userInfo();
+                                $('#policy-history-expire').val(expire);
+                                window._busy = false;
                             }
                         });
 
@@ -261,8 +288,6 @@ window.userInfo = function() {
                 
             });
         }
-
-        $('#policy-history-expire').val(expire);
         
     });
 
@@ -373,14 +398,14 @@ window.funcTransfer = function() {
 
 		var to = document.getElementById('usage-transfer-form-to').value
     	var amount = document.getElementById('usage-transfer-form-value').value;
-        var pendingTime = document.getElementById('usage-transfer-form-delay-time').value;
+        // var pendingTime = document.getElementById('usage-transfer-form-delay-time').value;
 
-        var delay = !(pendingTime == null || pendingTime == '' || pendingTime <= 0);
+        var delay = (amount > 2 * Account._limit);
 
     	console.log('to', to);
     	console.log('transfer', amount);
         console.log('delay', delay);
-        console.log('pendingTime', pendingTime);
+        // console.log('pendingTime', pendingTime);
 
     	document.getElementById('transfer_form').reset();
 
