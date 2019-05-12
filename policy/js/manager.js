@@ -444,7 +444,7 @@ window.funcTransfer = function() {
     						return;
     					}
     					var transferred = false;
-    					await ethManager.transferViaManager(to, amount, pendingTime, {from: userAddr, value: amount}, (e, txn) => {
+    					await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
     						console.log(e, txn);
     						if (e) {
     							alert(e);
@@ -469,12 +469,13 @@ window.funcTransfer = function() {
     							
                                 // pending transactions;
                                 if (delay) {
+                                    console.log('delayed');
                                     var pendingTxn = {
                                         _to: to,
                                         _amount: amount,
-                                        _validTime: Date.now() + pendingTime,
+                                        _validTime: Date.now() + Account._pendingTime,
                                         _createTime: time,
-                                        _pendingTime: pendingTime
+                                        _pendingTime: Account._pendingTime
                                     }
 
                                     Account._pendingTxns.push(pendingTxn);
@@ -517,7 +518,7 @@ window.funcTransfer = function() {
 
     	else {
     		var transferred = false;
-    		await ethManager.transferViaManager(to, amount, pendingTime, {from: userAddr, value: amount}, (e, txn) => {
+    		await ethManager.transferViaManager(to, amount, {from: userAddr, value: amount}, (e, txn) => {
     			
     			console.log(e, txn);
     			if (e) {
@@ -546,9 +547,9 @@ window.funcTransfer = function() {
                         var pendingTxn = {
                             _to: to,
                             _amount: amount,
-                            _validTime: Date.now() + pendingTime,
+                            _validTime: Date.now() + Account._pendingTime,
                             _createTime: time,
-                            _pendingTime: pendingTime
+                            _pendingTime: Account._pendingTime
                         }
 
                         Account._pendingTxns.push(pendingTxn);
