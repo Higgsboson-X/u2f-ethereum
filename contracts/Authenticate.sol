@@ -59,7 +59,7 @@ library Authenticate {
 		bytes memory counter;
 		bytes memory userPresence;
 
-		(counter, userPresence) = authenticateVerify(Base64.fromHex(decodedSignatureData), appParameter, bytes(publicKey), challengeParameter);
+		(counter, userPresence) = authenticateVerify(Base64.fromHex(decodedSignatureData), appParameter, Base64.fromHex(publicKey), challengeParameter);
 
 		Tools.Dict memory information;
 
@@ -98,7 +98,7 @@ library Authenticate {
 		bytes memory verifyData = getAuthenticateVerifyData(appParameter, userPresence, counter, challengeParameter);
 
 		// IN: signature, verifyData, publicKey;
-		require(Global.verifyECDSA(data, verifyData, Base64.websafeDecode(publicKey)) == 0, "Invalid signature.");
+		require(Global.verifyECDSA(data, verifyData, publicKey) == 0, "Invalid signature.");
 
 		return (counter, userPresence);
 

@@ -37,6 +37,8 @@ contract Manager {
 			1: history;
 		*/
 		uint _expire;
+		uint _pendingTime;
+
 		uint _limit;
 		// account data;
 		bool _lock;
@@ -51,8 +53,9 @@ contract Manager {
 	mapping(address => User) _users;
 	address _owner;
 
-	event Transfer(address from, address to, uint amount);
-	event Lock(address owner, address bank);
+	// event Transfer(address from, address to, uint amount);
+	event Lock(address owner, address manager);
+	event Unlock(address owner, address manager);
 
 	event RegistrationRequest(address user, string request, string appId);
 	event RegistrationComplete(address user, string device, string appId);
@@ -215,6 +218,7 @@ contract Manager {
 
 		_users[msg.sender]._known = true;
 		_users[msg.sender]._expire = 24;
+		_users[msg.sender]._pendingTime = 24;
 		_users[msg.sender]._limit = 10000;
 
 	}
@@ -225,10 +229,11 @@ contract Manager {
 
 	}
 
-	function setPolicy(uint policy, uint expire) onlyKnownUser checkSigned public {
+	function setPolicy(uint policy, uint expire, uint pendingTime) onlyKnownUser checkSigned public {
 
 		_users[msg.sender]._policy = policy;
 		_users[msg.sender]._expire = expire;
+		_users[msg.sender]._pendingTime = pendingTime;
 
 	}
 
@@ -236,17 +241,21 @@ contract Manager {
 
 		_users[msg.sender]._lock = true;
 
+		emit Lock(msg.sender, address(this));
+
 	}
 
 	function unlockAccount() onlyKnownUser checkSigned public {
 
 		_users[msg.sender]._lock = false;
 
+		emit Unlock(msg.sender, address(this));
+
 	}
 
 	// ======================================================================================================================== //
 	// function;
-	function transferViaManager(address to, uint amount, uint pendingTime) checkReady public payable {
+	function transferViaManager(address to, uint amount) checkReady public payable {
 
 		require(amount <= msg.value, "Not enough balance sent.");
 
@@ -258,9 +267,9 @@ contract Manager {
 				_users[msg.sender]._signed = false;
 				_users[msg.sender]._txnHistory[to] = now;
 			}
-			if (pendingTime > 0) {
+			if (amount > 2 * _users[msg.sender]._limit) {
 
-				Txn memory txn = Txn({_to: to, _amount: amount, _validTime: now + pendingTime * 1 hours});
+				Txn memory txn = Txn({_to: to, _amount: amount, _validTime: now + _users[msg.sender]._pendingTime * 1 hours});
 				_users[msg.sender]._pendingTxns.push(txn);
 
 				return;

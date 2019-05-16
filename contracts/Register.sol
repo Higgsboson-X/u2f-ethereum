@@ -41,6 +41,7 @@ library Register {
 
 	}
 
+	// pubKey, keyHandle should be decoded;
 	function completeRegistration(bytes challengeParameter, string pubKey, string keyHandle, string certKey, string signature, string facet) public pure returns (bytes) {
 
 		// bytes memory decodedClientData = Base64.fromHex(decodedClientDataStr);
@@ -83,9 +84,12 @@ library Register {
 		device._fields[3] = 'publicKey';
 
 		device._data[0] = Global.getVersion();
-		device._data[1] = string(Base64.websafeEncode(keyHandle));
+		//! removed websafe encode/decode;
+		// device._data[1] = string(Base64.websafeEncode(keyHandle));
+		device._data[1] = Base64.bytesToHexStr(keyHandle);
 		device._data[2] = appId;
-		device._data[3] = string(Base64.websafeEncode(pubKey));
+		// device._data[3] = string(Base64.websafeEncode(pubKey));
+		device._data[3] = Base64.bytesToHexStr(pubKey);
 
 		string memory deviceRegistrationData = Tools.dictToJson(device);
 

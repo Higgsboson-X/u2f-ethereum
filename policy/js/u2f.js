@@ -364,7 +364,7 @@ window.confirmAuthentication = async function(id, callback) {
 
             console.log(request);
 
-            request = hex2a(request.slice(2, request.length));
+            request = editDataOut(hex2a(request.slice(2, request.length)), 'sign');
 
             u2fc.isSupported()
             .then((support) => {
@@ -428,6 +428,54 @@ window.confirmAuthentication = async function(id, callback) {
 // ======================================================================================================================== //
 
 
+function editDataOut(data, type) {
+
+    if (type == 'enroll') {
+        return data;
+    }
+
+    else if (type == 'bind') {
+
+        dict = JSON.parse(data);
+        keyHandle = base64url.encode(Buffer.from(dict['keyHandle'], 'hex'));
+        pubKey = base64url.encode(Buffer.from(dict['publicKey'], 'hex'));
+        dict['keyHandle'] = keyHandle;
+        dict['publicKey'] = pubKey;
+
+        return JSON.stringify(dict);
+
+    }
+
+    else if (type == 'sign') {
+
+        dict = JSON.parse(data);
+        keyHandle = base64url.encode(Buffer.from(dict['keyHandle'], 'hex'));
+        pubKey = base64url.encode(Buffer.from(dict['publicKey'], 'hex'));
+        dict['keyHandle'] = keyHandle;
+        dict['publicKey'] = pubKey;
+
+        return JSON.stringify(dict);
+
+    }
+
+    else {
+
+        // type = 'verify';
+
+        dict = JSON.parse(data);
+        keyHandle = base64url.encode(Buffer.from(dict['keyHandle'], 'hex'));
+        dict['keyHandle'] = keyHandle;
+
+        return JSON.stringify(dict);
+
+    }
+
+}
+
+
+// ======================================================================================================================== //
+
+
 
 function u2fEnroll(appId, address) {
 
@@ -447,7 +495,7 @@ function u2fEnroll(appId, address) {
                     reject(err);
                 }
                 var enroll = result[0];
-                enroll = hex2a(enroll.slice(2, enroll.length));
+                enroll = editDataOut(hex2a(enroll.slice(2, enroll.length)), 'enroll');
 
                 console.log('request: ', enroll);
                 resolve(enroll);
@@ -527,7 +575,7 @@ function u2fBind(appId, address, response) {
 
                     var registeredKey = result[1];
 
-                    registeredKey = hex2a(registeredKey.slice(2, registeredKey.length));
+                    registeredKey = editDataOut(hex2a(registeredKey.slice(2, registeredKey.length)), 'bind');
 
                     console.log('registered key: ', registeredKey);
                     resolve(registeredKey);
@@ -563,7 +611,7 @@ function u2fSign(appId, address) {
                 }
 
                 var sign = result[2];
-                sign = hex2a(sign.slice(2, sign.length));
+                sign = editDataOut(hex2a(sign.slice(2, sign.length)), 'sign');
 
                 console.log('request: ', sign);
                 resolve(sign);
@@ -585,7 +633,7 @@ function u2fVerify(appId, address, response) {
         var dict = JSON.parse(response);
         var clientData = dict['clientData'];
         var signatureData = dict['signatureData'];
-        var keyHandle = dict['keyHandle'];
+        var keyHandle = base64url.toBuffer(dict['keyHandle']).toString('hex');
 
         var decodedClientData = base64url.toBuffer(clientData).toString('hex');
         var decodedSignatureData = base64url.toBuffer(signatureData).toString('hex');
@@ -618,7 +666,7 @@ function u2fVerify(appId, address, response) {
                     }
 
                     var lastVerified = result[3];
-                    lastVerified = hex2a(lastVerified.slice(2, lastVerified.length));
+                    lastVerified = editDataOut(hex2a(lastVerified.slice(2, lastVerified.length)), 'verify');
 
                     console.log('verification: ', lastVerified);
                     resolve(lastVerified);
@@ -646,7 +694,7 @@ window.updateRegisterRequest = async function(id) {
             var address = window.Account._u2fRecords[i]._address;
             var device = await getRegisterRequest(address);
 
-            window.Account._u2fRecords[i]._details = hex2a(device.slice(2, device.length));
+            window.Account._u2fRecords[i]._details = editDataOut(hex2a(device.slice(2, device.length)), 'enroll');
 
             updateAccount();
             fetchU2FRequests();
@@ -667,7 +715,7 @@ window.updateDevice = async function(id) {
             var address = window.Account._u2fRecords[i]._address;
             var device = await getRegisteredKey(address);
 
-            window.Account._u2fRecords[i]._details = hex2a(device.slice(2, device.length));
+            window.Account._u2fRecords[i]._details = editDataOut(hex2a(device.slice(2, device.length)), 'bind');
 
             updateAccount();
             fetchU2FRequests();
@@ -688,7 +736,7 @@ window.updateSignRequest = async function(id) {
             var address = window.Account._u2fRecords[i]._address;
             var device = await getSignRequest(address);
 
-            window.Account._u2fRecords[i]._details = hex2a(device.slice(2, device.length));
+            window.Account._u2fRecords[i]._details = editDataOut(hex2a(device.slice(2, device.length)), 'sign');
 
             updateAccount();
             fetchU2FRequests();
@@ -709,7 +757,7 @@ window.updateLastVerified = async function(id) {
             var address = window.Account._u2fRecords[i]._address;
             var verified = await getLastVerified(address);
 
-            window.Account._u2fRecords[i]._details = hex2a(verified.slice(2, verified));
+            window.Account._u2fRecords[i]._details = editDataOut(hex2a(verified.slice(2, verified)), 'verify');
 
             updateAccount();
             fetchU2FRequests();

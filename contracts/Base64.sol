@@ -82,7 +82,7 @@ library Base64 {
 		return newBytes;
 
 	}
-
+	
 	
 	function uintToAscii(uint number) internal pure returns(byte) {
         
@@ -95,6 +95,27 @@ library Base64 {
         else {
             revert();
         }
+        
+    }
+    
+    
+    function bytesToHexStr(bytes bs) internal pure returns (string) {
+        
+        bytes memory str = new bytes(2 * bs.length);
+        uint b;
+        uint n;
+        uint i = 0;
+        for (i = 0; i < bs.length; i++) {
+            b = uint(bs[i]);
+            // b is the i-th byte in the byte array;
+            n = b / 16;
+            str[2 * i] = uintToAscii(n);
+            // bytes(str)[2 * i] = uintToString(n);
+            n = b % 16;
+            str[2 * i + 1] = uintToAscii(n);
+        }
+        
+        return string(str);
         
     }
     
