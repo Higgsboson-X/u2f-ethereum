@@ -132,18 +132,19 @@ contract Manager {
 	// ======================================================================================================================== //
 
 	// u2f;
-	function client(string clientData, string appId, uint typ) onlyKnownUser public view returns (bytes) {
+	// changed decodedClientData to bytes;
+	function client(bytes clientData, string appId, uint typ) onlyKnownUser public view returns (bytes) {
 	    
 	    bytes memory challengeParameter;
 	    
 	    if (typ == 0) {
 	        require(_users[msg.sender]._enroll.length > 0, "No current registration request.");
-	        challengeParameter = Global.validateClientData(string(_users[msg.sender]._enroll), string(Base64.fromHex(clientData)), Global.getRegisterType(), appId);
+	        challengeParameter = Global.validateClientData(string(_users[msg.sender]._enroll), string(clientData), Global.getRegisterType(), appId);
 	    }
 	    
 	    else {
 	        require(_users[msg.sender]._sign.length > 0, "No current Authentication request.");
-	        challengeParameter = Global.validateClientData(string(_users[msg.sender]._sign), string(Base64.fromHex(clientData)), Global.getSignType(), appId);
+	        challengeParameter = Global.validateClientData(string(_users[msg.sender]._sign), string(clientData), Global.getSignType(), appId);
 	    }
 	    
 	    return challengeParameter;
@@ -162,11 +163,11 @@ contract Manager {
 
 
     // decoded and parsed response with format validation;
-	function bind(string appId, string challengeParameter, string pubKey, string keyHandle, string certKey, string signature) onlyKnownUser public {
+	function bind(string appId, bytes challengeParameter, bytes pubKey, bytes keyHandle, bytes certKey, bytes signature) onlyKnownUser public {
         
 		require(_users[msg.sender]._enroll.length > 0, "No current registration request.");
 				
-		bytes memory device = Register.completeRegistration(Base64.fromHex(challengeParameter), pubKey, keyHandle, certKey, signature, appId);
+		bytes memory device = Register.completeRegistration(challengeParameter, pubKey, keyHandle, certKey, signature, appId);
 
 		delete _users[msg.sender]._enroll;
 		
@@ -192,13 +193,13 @@ contract Manager {
 	}
 
     // decoded and parsed signature data;
-	function verify(string appId, string challengeParameter, string decodedSignatureData, string keyHandle) onlyKnownUser public {
+	function verify(string appId, bytes challengeParameter, bytes decodedSignatureData, string keyHandle) onlyKnownUser public {
 
 		require(_users[msg.sender]._sign.length > 0, "No current registration request.");
 		
 		bytes memory message;
 
-		message = Authenticate.completeAuthentication(_users[msg.sender]._sign, Base64.fromHex(challengeParameter), decodedSignatureData, keyHandle, appId);
+		message = Authenticate.completeAuthentication(_users[msg.sender]._sign, challengeParameter, decodedSignatureData, keyHandle, appId);
 
 		delete _users[msg.sender]._sign;
 
