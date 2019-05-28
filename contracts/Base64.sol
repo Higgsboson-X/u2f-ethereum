@@ -35,6 +35,12 @@ library Base64 {
 		return num;
 
 	}
+
+	function bytesToBytes32(bytes b) internal pure returns (bytes32) {
+        
+        return bytes32(bytesToUint(b));
+        
+    }
 	
 	function uintToString(uint num) internal pure returns (string) {
 	    

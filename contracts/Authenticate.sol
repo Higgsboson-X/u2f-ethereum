@@ -40,8 +40,8 @@ library Authenticate {
 
 	}
 
-
-	function completeAuthentication(bytes request, bytes challengeParameter, string decodedSignatureData, string keyHandle, string facet) public pure returns (bytes) {
+	// changed decodedSignatureData to bytes;
+	function completeAuthentication(bytes request, bytes challengeParameter, bytes decodedSignatureData, string keyHandle, string facet) public pure returns (bytes) {
 
         // bytes memory decodedClientData = Base64.fromHex(decodedClientDatastr);
 
@@ -59,7 +59,7 @@ library Authenticate {
 		bytes memory counter;
 		bytes memory userPresence;
 
-		(counter, userPresence) = authenticateVerify(Base64.fromHex(decodedSignatureData), appParameter, Base64.fromHex(publicKey), challengeParameter);
+		(counter, userPresence) = authenticateVerify(decodedSignatureData, appParameter, Base64.fromHex(publicKey), challengeParameter);
 
 		Tools.Dict memory information;
 
@@ -98,7 +98,7 @@ library Authenticate {
 		bytes memory verifyData = getAuthenticateVerifyData(appParameter, userPresence, counter, challengeParameter);
 
 		// IN: signature, verifyData, publicKey;
-		require(Global.verifyECDSA(data, verifyData, publicKey) == 0, "Invalid signature.");
+		require(Global.verifySecp256k1(data, verifyData, publicKey) == 0, "Invalid signature.");
 
 		return (counter, userPresence);
 

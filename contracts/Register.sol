@@ -41,15 +41,16 @@ library Register {
 
 	}
 
-	// pubKey, keyHandle should be decoded;
-	function completeRegistration(bytes challengeParameter, string pubKey, string keyHandle, string certKey, string signature, string facet) public pure returns (bytes) {
+	// pubKey, keyHandle, certKey, signature changed to bytes;
+	function completeRegistration(bytes challengeParameter, bytes pubKey, bytes keyHandle, bytes certKey, bytes signature, string facet) public pure returns (bytes) {
 
 		// bytes memory decodedClientData = Base64.fromHex(decodedClientDataStr);
 		
 		// Global.validateClientData(string(request), string(decodedClientData), Global.getRegisterType(), facet);
 
 		// verify response and application parameter;
-		return registerVerify(Base64.fromHex(pubKey), Base64.fromHex(keyHandle), Base64.fromHex(certKey), Base64.fromHex(signature), facet, challengeParameter);
+		// public key that is used for verification should have no `04` as the first byte;
+		return registerVerify(pubKey, keyHandle, certKey, signature, facet, challengeParameter);
 
 	}
 
@@ -71,7 +72,9 @@ library Register {
 		bytes memory verifyData = getRegisterVerifyData(Base64.bytes32ToBytes(sha256(bytes(appId))), challengeParameter, keyHandle, pubKey);
 
 		// IN: signature, verifyData, pk from certificate;
-		require(Global.verifyECDSA(signature, verifyData, certKey) == 0, "Invalid signature.");
+		// secp256r1;
+		// secp256k1;
+		require(Global.verifySecp256k1(signature, verifyData, certKey) == 0, "Invalid signature.");
 
 	    Tools.Dict memory device;
 
