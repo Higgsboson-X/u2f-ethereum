@@ -7,12 +7,23 @@ window.compiledManager = require('../../build/contracts/Manager.json');
 const Web3 = require('web3');
 // const qs = require('query-string');
 
-if (window.web3) {
-    window.web3 = new Web3(window.web3.currentProvider);
-}
-else {
-    window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
-}
+window.addEventListener('load', async () => {
+    if (window.ethereum) {
+        window.web3 = new Web3(ethereum);
+        try {
+            await ethereum.enable();
+        } catch (error) {
+            console.log("Please give access to wallet " + error)
+        }
+    } else {
+        if (window.web3) {
+            window.web3 = new Web3(window.web3.currentProvider);
+        }
+        else {
+            window.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
+        }
+    }
+});
 
 var defaultAccount = window.web3.eth.accounts[0];
 

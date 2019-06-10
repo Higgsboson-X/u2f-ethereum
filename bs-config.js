@@ -16,6 +16,13 @@ app.get('/myAccount', (req, res) => {
 
 });
 
+app.get('/myBank', (req, res) => {
+
+	res.sendFile(__dirname + dir + 'bank.html');
+
+});
+
+
 
 module.exports = {
 
