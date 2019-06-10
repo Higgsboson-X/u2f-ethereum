@@ -11,6 +11,7 @@ library Global {
 
 	bytes constant _prefix = hex"3059301306072a8648ce3d020106082a8648ce3d030107034200";
 
+	string constant _hashPrefix = '\x19Ethereum Signed Message:\n';
 	string constant _version = 'U2F_V2';
 
 	uint constant _maxNum = 11;
@@ -172,6 +173,32 @@ library Global {
 
 	}
 
+	function verifySecp256k1(bytes signature, bytes verifyData, bytes pubKey) internal pure returns (uint) {
+
+		string memory hexData = Base64.bytesToHexStr(verifyData);
+		bytes memory finalData = Base64.concatenateBytes(bytes(_hashPrefix), bytes(Base64.uintToString(verifyData.length * 2)));
+		finalData = Base64.concatenateBytes(finalData, bytes(hexData));
+
+		uint8 v = uint8(signature[64]);
+		bytes memory pop;
+		(pop, signature) = Base64.getPopBytes(32, signature);
+		bytes32 r = Base64.bytesToBytes32(pop);
+		(pop, signature) = Base64.getPopBytes(32, signature);
+		bytes32 s = Base64.bytesToBytes32(pop);
+
+		bytes memory addr = abi.encodePacked(ecrecover(keccak256(finalData), v, r, s));
+		(, pubKey) = Base64.getPopBytes(1, pubKey);
+		pubKey = Base64.bytes32ToBytes(keccak256(pubKey));
+		(, pubKey) = Base64.getPopBytes(12, pubKey);
+
+		if (keccak256(pubKey) == keccak256(addr)){
+			return 0;
+		}
+		else {
+			return 1;
+		}
+
+	}
 
 
 }

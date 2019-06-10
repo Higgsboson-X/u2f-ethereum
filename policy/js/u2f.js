@@ -9,6 +9,9 @@ window.sha256 = require('js-sha256').sha256;
 window.u2fc = require('u2f-api');
 window.random = require('randomstring');
 
+window.client = require('./client');
+window.vk = require('./virtual-key');
+
 window.TIME_OUT = 30;
 window.GAS = 8000000;
 window.PROMPT_REG_PEND_SHOW = 'Insert Yubico key in a USB port and click `Continue` to complete registration.';
@@ -299,49 +302,37 @@ window.confirmRegistration = async function(id) {
 
             request = hex2a(request.slice(2, request.length));
 
-            u2fc.isSupported()
-            .then((support) => {
+            var u2fToken = vk.parseU2FKeyStr(Account._u2fTokenStr);
 
-                console.log('support: ', support);
+            client.u2fRegisterClient(request, u2fToken)
+            .then(async (response) => {
 
-                u2fc.register([JSON.parse(request)], [], TIME_OUT)
-                .then(async (res) => {
-
-                    var response = JSON.stringify(res);
-                    console.log(response);
+                console.log(response);
             
-                    await u2fBind(appId, address, response)
-                    .then((dev) => {
-                        window.Account._u2fRecords[i]._details = PROMPT_REG_COMP_SHOW;
-                        window.Account._u2fRecords[i]._status = 'Confirmed';
-                    }, (error) => {
-                        window.Account._u2fRecords[i]._details = '[ERROR] ' + error.message;
-                        window.Account._u2fRecords[i]._status = 'Failed';
-                    });
-
-                }, (err) => {
-
-                    window.Account._u2fRecords[i]._details = '[ERROR] ' + err.metaData.code + '-' + err.metaData.type;
+                await u2fBind(appId, address, response)
+                .then((dev) => {
+                    window.Account._u2fRecords[i]._details = PROMPT_REG_COMP_SHOW;
+                    window.Account._u2fRecords[i]._status = 'Confirmed';
+                }, (error) => {
+                    window.Account._u2fRecords[i]._details = '[ERROR] ' + error.message;
                     window.Account._u2fRecords[i]._status = 'Failed';
-                    console.log(err);
-                    console.log('code: ', err.metaData.code);
-                    console.log('type: ', err.metaData.type);
-
-                })
-                .finally(() => {
-                    if (window.Account._u2fRecords[i]._status == 'Confirmed') {
-                        window.Account._registered = true;
-                    }
-                    fetchU2FRequests();
-                    updateAccount();
                 });
 
-            }, (e) => {
+            }, (err) => {
 
-                console.log(e);
-                console.log('code: ', e.metaData.code);
-                console.log('type: ', e.metaData.type);
+                window.Account._u2fRecords[i]._details = '[ERROR] ' + err;
+                window.Account._u2fRecords[i]._status = 'Failed';
+                console.log(err);
+                console.log('code: ', err.metaData.code);
+                console.log('type: ', err.metaData.type);
 
+            })
+            .finally(() => {
+                if (window.Account._u2fRecords[i]._status == 'Confirmed') {
+                    window.Account._registered = true;
+                }
+                fetchU2FRequests();
+                updateAccount();
             });
 
             break;
@@ -366,55 +357,42 @@ window.confirmAuthentication = async function(id, callback) {
 
             request = editDataOut(hex2a(request.slice(2, request.length)), 'sign');
 
-            u2fc.isSupported()
-            .then((support) => {
+            var u2fToken = vk.parseU2FKeyStr(Account._u2fTokenStr);
 
-                console.log('support: ', support);
+            client.u2fAuthenticateClient(request, u2fToken)
+            .then(async (response) => {
 
-                u2fc.sign([JSON.parse(request)], TIME_OUT)
-                .then(async (res) => {
-
-                    var response = JSON.stringify(res);
-                    console.log(response);
+                console.log(response);
             
-                    await u2fVerify(appId, address, response)
-                    .then((dev) => {
-                        window.Account._u2fRecords[i]._details = PROMPT_AUT_COMP_SHOW;
-                        window.Account._u2fRecords[i]._status = 'Confirmed';
+                await u2fVerify(appId, address, response)
+                .then((dev) => {
+                    window.Account._u2fRecords[i]._details = PROMPT_AUT_COMP_SHOW;
+                    window.Account._u2fRecords[i]._status = 'Confirmed';
 
-                        callback(true);
-                    }, (error) => {
-                        window.Account._u2fRecords[i]._details = '[ERROR] ' + error.message;
-                        window.Account._u2fRecords[i]._status = 'Failed';
-
-                        callback(false);
-                    });
-
-                }, (err) => {
-
-                    window.Account._u2fRecords[i]._details = '[ERROR] ' + err.metaData.code + '-' + err.metaData.type;
+                    callback(true);
+                }, (error) => {
+                    window.Account._u2fRecords[i]._details = '[ERROR] ' + error.message;
                     window.Account._u2fRecords[i]._status = 'Failed';
-                    console.log(err);
-                    console.log('code: ', err.metaData.code);
-                    console.log('type: ', err.metaData.type);
 
                     callback(false);
-
-                })
-                .finally(() => {
-                    fetchU2FRequests();
-                    updateAccount();
                 });
 
-            }, (e) => {
+            }, (err) => {
 
-                console.log(e);
-                console.log('code: ', e.metaData.code);
-                console.log('type: ', e.metaData.type);
+                window.Account._u2fRecords[i]._details = '[ERROR] ' + err;
+                window.Account._u2fRecords[i]._status = 'Failed';
+                console.log(err);
+                console.log('code: ', err.metaData.code);
+                console.log('type: ', err.metaData.type);
 
                 callback(false);
 
+            })
+            .finally(() => {
+                fetchU2FRequests();
+                updateAccount();
             });
+
 
             break;
         }
@@ -509,7 +487,7 @@ function u2fEnroll(appId, address) {
 }
 
 
-function u2fBind(appId, address, response) {
+function u2fBind(appId, address, response, virtual=true) {
 
     return new Promise((resolve, reject) => {
 
@@ -517,7 +495,7 @@ function u2fBind(appId, address, response) {
         var clientData = dict['clientData'];
         var registrationData = dict['registrationData'];
 
-        var decodedClientData = base64url.toBuffer(clientData).toString('hex');
+        var decodedClientData = '0x' + base64url.toBuffer(clientData).toString('hex');
         var buf = base64url.toBuffer(registrationData);
 
         if (buf[0] != 5) {
@@ -526,23 +504,36 @@ function u2fBind(appId, address, response) {
 
         var k = 1;
 
-        var pubKey = buf.slice(k, k + 65).toString('hex');
+        var pubKey = '0x' + buf.slice(k, k + 65).toString('hex');
         k += 65;
 
         var keyHandleLen = Buffer.from(buf.slice(k, k + 1), 'hex')[0];
         k++;
 
-        var keyHandle = buf.slice(k, k + keyHandleLen).toString('hex');
+        var keyHandle = '0x' + buf.slice(k, k + keyHandleLen).toString('hex');
         k += keyHandleLen;
 
-        var certLen = parseTlvSize(buf.slice(k, buf.length));
-        var cert = fixCert(buf.slice(k, k + certLen));
-        k += certLen;
+        var certKey;
 
-        var prefix = '3059301306072a8648ce3d020106082a8648ce3d030107034200';
-        var certKey = cert.slice(cert.search(prefix) + prefix.length, cert.search(prefix) + prefix.length + 65 * 2);
+        if (virtual) {
+            var certKeyLen = Buffer.from(buf.slice(k, k + 1), 'hex')[0];
+            k++;
+            certKey = '0x' + buf.slice(k, k + certKeyLen).toString('hex');
+            k += certKeyLen;
+        }
+        else {
+            var certLen = parseTlvSize(buf.slice(k, buf.length));
+            var cert = fixCert(buf.slice(k, k + certLen));
+            k += certLen;
 
-        var signature = buf.slice(k, buf.length).toString('hex');
+            var prefix = '3059301306072a8648ce3d020106082a8648ce3d030107034200';
+            certKey = '0x' + cert.slice(cert.search(prefix) + prefix.length, cert.search(prefix) + prefix.length + 65 * 2);
+        }
+
+        var signature = '0x' + buf.slice(k, buf.length).toString('hex');
+        // var r = '0x' + signature.slice(0, 32).toString('hex');
+        // var s = '0x' + signature.slice(32, 64).toString('hex');
+        // var v = signature[64];
 
         var details = {'type': 'register'};
 
@@ -555,7 +546,7 @@ function u2fBind(appId, address, response) {
             }
 
             console.log(challengeParameter);
-            challengeParameter = challengeParameter.slice(2, challengeParameter.length);
+            // challengeParameter = challengeParameter.slice(2, challengeParameter.length);
 
             ethManager.bind(appId, challengeParameter, pubKey, keyHandle, certKey, signature, {from: address}, (err, txn) => {
 
@@ -635,8 +626,8 @@ function u2fVerify(appId, address, response) {
         var signatureData = dict['signatureData'];
         var keyHandle = base64url.toBuffer(dict['keyHandle']).toString('hex');
 
-        var decodedClientData = base64url.toBuffer(clientData).toString('hex');
-        var decodedSignatureData = base64url.toBuffer(signatureData).toString('hex');
+        var decodedClientData = '0x' + base64url.toBuffer(clientData).toString('hex');
+        var decodedSignatureData = '0x' + base64url.toBuffer(signatureData).toString('hex');
 
 
         ethManager.client(decodedClientData, appId, 1, {from: address}, (e, challengeParameter) => {
@@ -647,7 +638,7 @@ function u2fVerify(appId, address, response) {
             }
 
             console.log(challengeParameter);
-            challengeParameter = challengeParameter.slice(2, challengeParameter.length);
+            // challengeParameter = challengeParameter.slice(2, challengeParameter.length);
 
             ethManager.verify(appId, challengeParameter, decodedSignatureData, keyHandle, {from: address}, (err, txn) => {
 

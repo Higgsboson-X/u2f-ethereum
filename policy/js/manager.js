@@ -1,3 +1,6 @@
+window.client = require('./client');
+window.vk = require('./virtual-key');
+
 window.qs = require('query-string');
 window.sha256 = require('js-sha256').sha256;
 
@@ -25,6 +28,9 @@ window.Account = JSON.parse(localStorage.getItem(userAddr));
 
 if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) {
 
+    var token = vk.genNewU2FKey();
+    var passwd = 'pass';
+
 	window.Account = {
 
 		_managerAddr: ethManagerAddr,
@@ -48,9 +54,12 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 		// times, amount;
 		_totalTransfer: [0, 0],
         // available policies;
-        _policyList: ['strict', 'history']
+        _policyList: ['strict', 'history'],
 
-	}
+        _u2fTokenStr: vk.stringifyU2FKey(token, passwd),
+        _u2fPasswd: passwd
+
+	};
 
     $('#u2f-policy-history-sel').prop('checked', false);
     $('#u2f-policy-strict-sel').prop('checked', true);
@@ -58,6 +67,8 @@ if (Account == null || Account == {} || Account._managerAddr != ethManagerAddr) 
 	window.localStorage.setItem(userAddr, JSON.stringify(Account));
 
 }
+
+
 
 
 $("div[id*='usage']").hide();
